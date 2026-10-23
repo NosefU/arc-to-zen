@@ -1,23 +1,22 @@
-/* Arc Look — правки интерфейса Zen под Arc.
-   Каждая часть включается своим переключателем в настройках мода. */
+/* Arc Look: Zen interface tweaks towards Arc.
+   Each part has its own switch in the mod settings. */
 
-/* Полоска контейнера у вертикальных вкладок — слева, а не справа.
-   В tabs.css у .tab-background стоит flex-direction: row-reverse именно ради неё. */
+/* Container line of vertical tabs on the left instead of the right.
+   tabs.css gives .tab-background flex-direction: row-reverse just for this line. */
 @media -moz-pref("mod.arclook.container-line-left") {
   #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab .tab-background {
     flex-direction: row !important;
   }
 }
 
-/* У важных вкладок полоска контейнера не нужна: контейнер и так понятен
-   по пространству. */
+/* Essentials need no container line: the space already tells the container. */
 @media -moz-pref("mod.arclook.hide-essential-container-line") {
   .tabbrowser-tab[zen-essential] .tab-context-line {
     display: none !important;
   }
 }
 
-/* Верхняя панель 32px, как в Arc. */
+/* A 32px top bar, as in Arc. */
 @media -moz-pref("mod.arclook.compact-toolbar") {
   :root {
     --zen-toolbar-height: 32px !important;
@@ -27,21 +26,21 @@
   }
 }
 
-/* Поле адреса как в Arc: по ширине адреса вместе с боковыми кнопками, но не шире
-   заданного значения, по центру панели, мелким шрифтом (серым — без фокуса);
-   фон поля — только при наведении (подсветку рисует сам Zen) и в фокусе. */
+/* Arc-like address bar: as wide as the URL plus its side buttons, up to a set
+   maximum, centered in the bar, in a small font (grey when unfocused); the field
+   background shows only on hover (Zen draws that highlight) and on focus. */
 @media -moz-pref("mod.arclook.urlbar") {
-  /* Zen делает #urlbar-container контейнером для container queries (inline-size),
-     из-за этого он не сжимается по содержимому — отключаем. В фокусе правило
-     тоже действует, чтобы поле не прыгало при клике. */
+  /* Zen makes #urlbar-container a container-query container (inline-size), which
+     stops it from shrinking to its content, so that is turned off. The rule also
+     applies on focus so the field does not jump on click. */
   #nav-bar #urlbar-container {
     flex: 0 1 auto !important;
     width: auto !important;
     min-width: 0 !important;
     max-width: var(--mod-arclook-urlbar-max-width, 640px) !important;
     container-type: normal !important;
-    /* Всплывающую панель Zen (zen-floating-urlbar) не трогаем: у неё своя
-       ширина и обычный шрифт. */
+    /* Zen's floating address bar (zen-floating-urlbar) is left alone: it has its
+       own width and the regular font. */
     & #urlbar:not([zen-floating-urlbar="true"]) {
       flex: 0 1 auto !important;
       width: auto !important;
@@ -52,7 +51,7 @@
         flex: 0 1 auto !important;
       }
       & #urlbar-input {
-        /* Шрифт одинаковый с фокусом и без: иначе в фокусе текст шире и поле растёт. */
+        /* Same font with and without focus; otherwise the text widens on focus and the field grows. */
         font-size: 12px !important;
         field-sizing: content !important;
         flex: 0 1 auto !important;
@@ -63,9 +62,9 @@
     }
   }
 
-  /* Раньше свободное место забирало поле адреса (flex: 400). Теперь его делят
-     пружины по бокам от поля, а у них в Zen max-width 112px — снимаем, иначе
-     значки расширений уезжают к середине. */
+  /* The address bar used to take the free space (flex: 400). Now the springs on
+     both sides share it; Zen caps them at max-width 112px, which is lifted, or the
+     extension icons drift to the middle. */
   #nav-bar toolbarspring {
     max-width: none !important;
     flex: 1 1 0 !important;
@@ -82,17 +81,17 @@
   }
 }
 
-/* Кнопки Peek (Glance) как в Arc: светлые на светлой теме и тёмные на тёмной.
-   В Zen наоборот — light-dark(rgb(24, 24, 24), rgb(231, 231, 231)). Фон без
-   подмешивания цвета темы, а значок непрозрачный: стандартные стили Firefox
-   рисуют значки кнопок с прозрачностью 0.7, и на белом синий бледнеет.
-   Подтверждение закрытия (waitconfirmation) не трогаем — там красный фон. */
+/* Arc-like Peek (Glance) buttons: light in the light theme, dark in the dark one.
+   Zen does the opposite: light-dark(rgb(24, 24, 24), rgb(231, 231, 231)). The
+   background has no theme tint and the icon is opaque: Firefox's default styles
+   draw button icons at 0.7 opacity, which washes the blue out on white.
+   The close confirmation (waitconfirmation) keeps its red background. */
 @media -moz-pref("mod.arclook.glance-light-buttons") {
   .zen-glance-sidebar-container toolbarbutton:not([waitconfirmation]) {
     background: light-dark(rgb(255, 255, 255), rgb(24, 24, 24)) !important;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15) !important;
-    /* Насыщенный синий, как в Arc, вместо акцентного цвета macOS (#1683ff).
-       Свой цвет можно задать в настройках мода. */
+    /* Vivid blue, as in Arc, instead of the macOS accent color (#1683ff).
+       A custom color can be set in the mod settings. */
     color: var(--mod-arclook-glance-icon-color, light-dark(rgb(43, 37, 255), rgb(143, 139, 255))) !important;
 
     &:hover {
@@ -106,9 +105,9 @@
   }
 }
 
-/* Окно Peek (Glance) как в Arc: скруглённые углы и отступ снизу. Высоту
-   (height: 100%) Zen задаёт в style и анимирует скриптом, поэтому отступ даём
-   родителю — тогда 100% становятся меньше, а анимация не ломается. */
+/* Arc-like Peek (Glance) window: rounded corners and space at the bottom. Zen sets
+   the height (height: 100%) inline and animates it from script, so the padding
+   goes on the parent: 100% gets smaller and the animation keeps working. */
 @media -moz-pref("mod.arclook.glance-rounded") {
   .browserSidebarContainer.zen-glance-overlay {
     padding-bottom: 12px !important;

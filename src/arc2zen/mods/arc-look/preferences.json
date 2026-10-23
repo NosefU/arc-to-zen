@@ -1,51 +1,51 @@
 [
   {
     "property": "mod.arclook.container-line-left",
-    "label": "Полоска контейнера у вкладок — слева",
+    "label": "Container line on the left of tabs",
     "type": "checkbox",
     "defaultValue": true
   },
   {
     "property": "mod.arclook.hide-essential-container-line",
-    "label": "Без полоски контейнера у важных вкладок",
+    "label": "No container line on Essentials",
     "type": "checkbox",
     "defaultValue": true
   },
   {
     "property": "mod.arclook.compact-toolbar",
-    "label": "Компактная верхняя панель (32px)",
+    "label": "Compact top bar (32px)",
     "type": "checkbox",
     "defaultValue": true
   },
   {
     "property": "mod.arclook.urlbar",
-    "label": "Поле адреса как в Arc: по ширине адреса, по центру, без фона",
+    "label": "Arc-like address bar: sized to the URL, centered, no background",
     "type": "checkbox",
     "defaultValue": true
   },
   {
     "property": "mod.arclook.urlbar-max-width",
-    "label": "          максимальная ширина поля адреса",
+    "label": "          maximum address bar width",
     "type": "string",
     "defaultValue": "640px",
-    "placeholder": "напр. 640px или 50vw"
+    "placeholder": "e.g. 640px or 50vw"
   },
   {
     "property": "mod.arclook.glance-light-buttons",
-    "label": "Светлые кнопки Peek (Glance) на светлой теме",
+    "label": "Light Peek (Glance) buttons in the light theme",
     "type": "checkbox",
     "defaultValue": true
   },
   {
     "property": "mod.arclook.glance-icon-color",
-    "label": "          цвет значков Peek (пусто — синий как в Arc)",
+    "label": "          Peek icon color (empty: Arc's blue)",
     "type": "string",
     "defaultValue": "",
-    "placeholder": "напр. #2b25ff или red"
+    "placeholder": "e.g. #2b25ff or red"
   },
   {
     "property": "mod.arclook.glance-rounded",
-    "label": "Окно Peek со скруглёнными углами и отступом снизу",
+    "label": "Peek window with rounded corners and bottom padding",
     "type": "checkbox",
     "defaultValue": true
   }

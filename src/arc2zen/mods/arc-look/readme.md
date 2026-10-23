@@ -1,16 +1,16 @@
 # Arc Look
 
-Правки интерфейса Zen под Arc. Каждая часть включается отдельно в настройках мода.
+Zen interface tweaks towards Arc. Each part can be switched on or off in the mod settings.
 
-- **Полоска контейнера слева.** У вертикальных вкладок цветная полоска контейнера
-  стоит у левого края, а не у правого.
-- **Без полоски у важных вкладок.** У важных вкладок полоску контейнера не видно:
-  контейнер и так понятен по пространству.
-- **Компактная верхняя панель.** Высота 32px вместо 42px, поле адреса — 26px.
-- **Поле адреса как в Arc.** Поле по ширине адреса вместе с боковыми кнопками, но
-  не шире заданного значения (по умолчанию 640px), стоит по центру панели. Адрес
-  мелкий и серый, фон поля появляется только при наведении и в фокусе.
-- **Светлые кнопки Peek.** Кнопки справа от окна Peek (Glance) — светлые на светлой
-  теме и тёмные на тёмной, как в Arc, значки насыщенного синего цвета. В Zen по
-  умолчанию наоборот. Цвет значков можно поменять в настройках мода.
-- **Окно Peek как в Arc.** Скруглённые углы (10px) и отступ 12px снизу.
+- **Container line on the left.** On vertical tabs the colored container line sits at the
+  left edge instead of the right.
+- **No container line on Essentials.** Essentials show no container line: the space already
+  tells which container they are in.
+- **Compact top bar.** 32px high instead of 42px, with a 26px address bar.
+- **Arc-like address bar.** The field is as wide as the URL plus its side buttons, up to a set
+  maximum (640px by default), and centered in the bar. The URL is small and grey; the field
+  background appears only on hover and focus.
+- **Light Peek buttons.** The buttons next to the Peek (Glance) window are light in the light
+  theme and dark in the dark theme, as in Arc, with vivid blue icons. Zen does the opposite by
+  default. The icon color can be changed in the mod settings.
+- **Arc-like Peek window.** Rounded corners (10px) and 12px of space at the bottom.
