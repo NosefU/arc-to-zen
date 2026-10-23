@@ -9,7 +9,7 @@ This provides the actual user-organized pinned tabs, not browsing history.
 import json
 import argparse
 from pathlib import Path
-from typing import List, Dict, Optional, Any
+from typing import Any, Dict, Iterable, List, Optional
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 import logging
@@ -63,6 +63,14 @@ class ArcSpace:
         return f"ArcSpace(name='{self.space_name}'{icon_str}, tabs={len(self.pinned_tabs)}, folders={len(self.folders)})"
 
 
+def arc_space_name(space_id: str, space_value: Dict) -> str:
+    """Name an Arc space the way every migration step matches it in Zen.
+
+    Arc leaves the title empty for its built-in personal space.
+    """
+    return space_value.get('title') or f'Space {space_id}'
+
+
 class ArcPinnedTabExtractor:
     """Extracts pinned tabs with folder structure from Arc's StorableSidebar.json."""
 
@@ -70,7 +78,11 @@ class ArcPinnedTabExtractor:
         self.arc_profile = resolve_arc_profile(arc_profile_path)
         self.arc_sidebar_file = self.arc_profile / "StorableSidebar.json"
 
-    def extract_pinned_tabs(self, include_orphaned: bool = True) -> List[ArcSpace]:
+    def extract_pinned_tabs(
+        self,
+        include_orphaned: bool = True,
+        fallback_space_names: Optional[Iterable[str]] = None,
+    ) -> List[ArcSpace]:
         """Extract all pinned tabs organized by spaces with folder structure."""
         if not self.arc_sidebar_file.exists():
             logger.error(f"Arc StorableSidebar.json not found: {self.arc_sidebar_file}")
@@ -81,13 +93,22 @@ class ArcPinnedTabExtractor:
                 sidebar_data = json.load(f)
 
             logger.info("✅ Loaded Arc StorableSidebar.json")
-            return self._parse_local_sidebar_data(sidebar_data, include_orphaned=include_orphaned)
+            return self._parse_local_sidebar_data(
+                sidebar_data,
+                include_orphaned=include_orphaned,
+                fallback_space_names=fallback_space_names,
+            )
 
         except Exception as e:
             logger.error(f"Failed to parse StorableSidebar.json: {e}")
             return []
 
-    def _parse_local_sidebar_data(self, data: Dict, include_orphaned: bool = True) -> List[ArcSpace]:
+    def _parse_local_sidebar_data(
+        self,
+        data: Dict,
+        include_orphaned: bool = True,
+        fallback_space_names: Optional[Iterable[str]] = None,
+    ) -> List[ArcSpace]:
         """Parse the local sidebar data structure (much simpler approach)."""
         arc_spaces = []
 
@@ -101,7 +122,7 @@ class ArcPinnedTabExtractor:
             if isinstance(space_models[i], str) and i + 1 < len(space_models):
                 space_id = space_models[i]
                 space_data = space_models[i + 1].get('value', {})
-                space_name = space_data.get('title', f'Space {space_id}')
+                space_name = arc_space_name(space_id, space_data)
 
                 # Extract icon from customInfo if available
                 icon = None
@@ -117,6 +138,9 @@ class ArcPinnedTabExtractor:
                 if 'custom' in profile_data and '_0' in profile_data['custom']:
                     custom_data = profile_data['custom']['_0']
                     profile = custom_data.get('directoryBasename')
+                elif profile_data.get('default'):
+                    # Spaces on Arc's default profile store {"default": true}
+                    profile = "Default"
 
                 # If no profile is set (Personal space), map to "Default" profile
                 if profile is None and space_name == "Personal":
@@ -377,7 +401,9 @@ class ArcPinnedTabExtractor:
                         logger.info(f"    ⭐ Created new 'Orphaned' space with {len(orphaned_tabs)} Essential tabs")
                         logger.info(f"    💡 These tabs will appear in a separate 'Orphaned' workspace in Zen")
                     else:
-                        if self._preserve_orphaned_essentials_in_fallback_space(orphaned_tabs, arc_spaces, spaces_info):
+                        if self._preserve_orphaned_essentials_in_fallback_space(
+                            orphaned_tabs, arc_spaces, spaces_info, fallback_space_names
+                        ):
                             logger.info(f"    ✅ Preserved {len(orphaned_tabs)} Essential tabs without creating an 'Orphaned' workspace")
                         else:
                             logger.info(f"    ⏭️ Skipping 'Orphaned' workspace with {len(orphaned_tabs)} Essential tabs")
@@ -390,8 +416,13 @@ class ArcPinnedTabExtractor:
         orphaned_tabs: List[ArcPinnedTab],
         arc_spaces: List[ArcSpace],
         spaces_info: Dict,
+        fallback_space_names: Optional[Iterable[str]] = None,
     ) -> bool:
-        """Keep unmatched Essential tabs when the synthetic Orphaned space is disabled."""
+        """Keep unmatched Essential tabs when the synthetic Orphaned space is disabled.
+
+        The tabs go to the first space listed in fallback_space_names, so they are
+        not lost when the migration skips the first Arc space.
+        """
         if not orphaned_tabs:
             return True
 
@@ -412,7 +443,8 @@ class ArcPinnedTabExtractor:
                 )
             )
 
-        fallback_space = arc_spaces[0]
+        preferred = set(fallback_space_names or ())
+        fallback_space = next((space for space in arc_spaces if space.space_name in preferred), arc_spaces[0])
         start_index = len(fallback_space.pinned_tabs)
         for offset, tab in enumerate(orphaned_tabs):
             tab.space_id = fallback_space.space_id
@@ -813,7 +845,7 @@ class ArcPinnedTabExtractor:
                 space_id = space_models[i]
                 if i + 1 < len(space_models) and isinstance(space_models[i + 1], dict):
                     space_data = space_models[i + 1].get('value', {})
-                    space_name = space_data.get('title', f'Space {space_id}')
+                    space_name = arc_space_name(space_id, space_data)
 
                     logger.info(f"📍 Processing space: {space_name}")
 

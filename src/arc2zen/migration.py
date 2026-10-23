@@ -131,7 +131,7 @@ def extract_arc_data(
     export_path.parent.mkdir(parents=True, exist_ok=True)
 
     extractor = ArcPinnedTabExtractor(arc_profile)
-    arc_spaces = extractor.extract_pinned_tabs(include_orphaned=not skip_orphaned)
+    arc_spaces = extractor.extract_pinned_tabs(include_orphaned=not skip_orphaned, fallback_space_names=spaces)
     if not arc_spaces:
         raise RuntimeError("No Arc tabs or folders found to migrate.")
 

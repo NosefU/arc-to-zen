@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Tuple
 
 from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
+from .extract import arc_space_name
 from .profile_paths import arc_json_path
 
 
@@ -62,7 +63,7 @@ def arc_folder_states(arc_profile: str | Path | None = None) -> Dict[FolderKey, 
 
     space_models = sidebar.get("firebaseSyncState", {}).get("syncData", {}).get("spaceModels", [])
     space_names = {
-        space_id: space_data.get("value", {}).get("title", space_id)
+        space_id: arc_space_name(space_id, space_data.get("value", {}))
         for space_id, space_data in alternating_pairs(space_models)
     }
 
@@ -82,7 +83,7 @@ def arc_folder_states(arc_profile: str | Path | None = None) -> Dict[FolderKey, 
             visit(space_name, folder_path, item.get("childrenIds", []))
 
     for space_id, space_data in alternating_pairs(sidebar_container.get("spaces", [])):
-        space_name = space_names.get(space_id, space_id)
+        space_name = space_names.get(space_id) or arc_space_name(space_id, {})
         pinned_children = section_children(space_data.get("containerIDs", []), "pinned", items_lookup)
         visit(space_name, (), pinned_children)
 
