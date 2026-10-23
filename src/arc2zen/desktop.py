@@ -497,6 +497,9 @@ class MainWindow(QMainWindow):
         self.boosts_check = QCheckBox("Boosts")
         self.boosts_check.setChecked(True)
         self.boosts_check.setToolTip("Copies every Arc boost's CSS into Zen boosts for the same site; boosts belong to the Arc account, not to a space. Zen boosts have no JavaScript.")
+        self.link_routing_check = QCheckBox("Air Traffic Control rules as Space Routing")
+        self.link_routing_check.setChecked(True)
+        self.link_routing_check.setToolTip("Rules that open matching links in a specific Arc space become Zen Space Routing routes to that workspace.")
         self.containers_check = QCheckBox("Arc profiles as Zen containers")
         self.containers_check.setChecked(True)
         self.containers_check.setToolTip("Creates a Zen container per Arc profile and opens each migrated workspace in it.")
@@ -579,6 +582,7 @@ class MainWindow(QMainWindow):
             self.workspace_themes_check,
             self.default_theme_check,
             self.boosts_check,
+            self.link_routing_check,
             self.containers_check,
             self.cookies_check,
             self.local_storage_check,
@@ -725,6 +729,7 @@ class MainWindow(QMainWindow):
             default_theme=self.default_theme_check.isChecked(),
             containers=self.containers_check.isChecked(),
             boosts=self.boosts_check.isChecked(),
+            link_routing=self.link_routing_check.isChecked(),
             cookies=self.cookies_check.isChecked(),
             passwords=self.passwords_check.isChecked(),
             local_storage=self.local_storage_check.isChecked(),

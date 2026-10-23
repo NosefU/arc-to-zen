@@ -179,6 +179,12 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     and writes Zen's `zen-boosts.jsonlz4` (keyed by host) plus
     `zen-boosts/<id>.css`, using the Arc boost id so re-runs update in place.
 
+- `src/arc2zen/link_routing.py`
+  - Converts Arc `StorableLinkRouting.json` rules (Swift-enum JSON: `urlMatch`
+    conditions, destination space id) into `zen-space-routing.jsonlz4` routes
+    (`contains` / `equal-to` / `regex`, `openIn` = workspace uuid). Rule ids are
+    reused so re-runs update routes in place.
+
 - `src/arc2zen/tab_repair.py`
   - Replaces tab URLs with hosts that fail IDNA round-trip (Zen throws
     `NS_ERROR_MALFORMED_URI` and its menus stop working) with `about:blank` in

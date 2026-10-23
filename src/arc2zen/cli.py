@@ -64,6 +64,11 @@ def parse_args() -> argparse.Namespace:
         help="Leave Zen's colors on spaces that have no Arc theme instead of using Arc's default gradient.",
     )
     parser.add_argument(
+        "--no-link-routing",
+        action="store_true",
+        help="Do not copy Arc Air Traffic Control rules into Zen Space Routing.",
+    )
+    parser.add_argument(
         "--no-boosts",
         action="store_true",
         help="Do not copy Arc boosts (custom CSS per site) into Zen boosts.",
@@ -137,6 +142,7 @@ def main() -> int:
         default_theme=not args.no_default_theme,
         containers=not args.no_containers,
         boosts=not args.no_boosts,
+        link_routing=not args.no_link_routing,
         cookies=args.cookies,
         passwords=args.passwords,
         local_storage=args.local_storage,

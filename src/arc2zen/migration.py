@@ -12,6 +12,7 @@ from .arc_urls import convert_arc_url
 from .boosts import migrate_boosts
 from .containers import sync_containers
 from .cookies import migrate_cookies
+from .link_routing import migrate_link_routing
 from .local_storage import migrate_local_storage
 from .passwords import migrate_passwords
 from .extract import ArcPinnedTabExtractor
@@ -48,6 +49,7 @@ class MigrationOptions:
     local_storage: bool = False
     repair_tabs: bool = True
     boosts: bool = True
+    link_routing: bool = True
     skip_orphaned: bool = True
     create_backups: bool = True
     auto_close_zen: bool = True
@@ -295,6 +297,18 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     create_backups=options.create_backups,
+                ),
+            ),
+        ),
+        (
+            options.link_routing,
+            MigrationStep(
+                "Copy Air Traffic Control rules to Space Routing",
+                lambda: migrate_link_routing(
+                    arc_profile=options.arc_profile,
+                    zen_profile=options.zen_profile,
+                    create_backups=options.create_backups,
+                    space_names=options.spaces,
                 ),
             ),
         ),

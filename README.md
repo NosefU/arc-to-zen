@@ -30,6 +30,7 @@ Pick the archive for your OS:
 - 🍪 optionally, cookies of those profiles, so sites stay signed in (macOS)
 - 🔑 optionally, saved passwords of those profiles (macOS)
 - 🚀 Arc boosts as Zen boosts (CSS per site)
+- 🛫 Air Traffic Control rules as Zen Space Routing
 - 🗄️ optionally, sites' localStorage of those profiles, in their containers
 
 ## GUI
@@ -119,6 +120,7 @@ Useful switches:
   `about:blank`, because such a tab (for example a bad punycode host like
   `ww.xn--15-.example.org`) makes Zen's menus stop responding
 - `--no-boosts` skips Arc boosts
+- `--no-link-routing` skips Air Traffic Control rules
 - `--no-containers` keeps workspaces and tabs out of per-profile containers
 - `--cookies` copies the cookies of the migrated spaces' Arc profiles into
   their containers
@@ -181,6 +183,18 @@ regardless of the selected spaces. A boost active in Arc becomes the active Zen
 boost for its site unless Zen already has one active there. Zen boosts have no
 JavaScript, so a boost's JS is not copied; the log names those boosts.
 Re-running updates the same boosts instead of duplicating them.
+
+## Air Traffic Control
+
+Arc rules that open matching links in a specific space
+(`StorableLinkRouting.json`) become Zen Space Routing routes to the workspace
+with the same name. "Contains" and regex conditions map directly, "is" maps to
+Zen's "equal to", and "starts/ends with" become a regex; a rule with several URL
+conditions becomes one regex that requires all of them. Rules that open links
+in the most recent space need no route, since that is Zen's default. Rules with
+conditions Zen cannot express, such as the source app, and rules sending links
+to Little Arc are skipped and counted in the log, as are rules for spaces that
+are not migrated.
 
 ## Profiles
 
