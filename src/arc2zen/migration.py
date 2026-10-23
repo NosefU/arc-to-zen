@@ -290,6 +290,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     zen_profile=options.zen_profile,
                     export_file=export_file,
                     create_backups=options.create_backups,
+                    prune=options.nuke,
                 ),
             ),
         ),
