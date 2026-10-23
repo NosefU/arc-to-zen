@@ -150,6 +150,45 @@ def zen_theme_from_arc(window_theme: Dict[str, Any]) -> Optional[Dict[str, Any]]
     }
 
 
+# Arc's look for a space without a theme: a soft pink-to-lavender gradient
+ARC_DEFAULT_THEME_COLORS = ["#fff1f2", "#e3e3ff"]
+
+
+def arc_default_theme() -> Dict[str, Any]:
+    """Arc's default gradient as Zen custom colors.
+
+    Zen's palette dots ("explicit-lightness") re-derive such light colors and
+    lose them: the background turns almost white and the accent red. Custom
+    colors keep the exact values and Arc's blue accent.
+    """
+    return {
+        "type": "gradient",
+        "gradientColors": [
+            {
+                "c": color,
+                "isCustom": True,
+                "algorithm": "",
+                "isPrimary": index == 0,
+                "lightness": 50,
+                "position": None,
+                "type": None,
+            }
+            for index, color in enumerate(ARC_DEFAULT_THEME_COLORS)
+        ],
+        "opacity": DEFAULT_OPACITY,
+        "texture": 0,
+    }
+
+
+def arc_space_names(arc_profile: str | Path | None = None) -> list[str]:
+    sidebar = load_arc_sidebar(arc_profile)
+    space_models = sidebar.get("firebaseSyncState", {}).get("syncData", {}).get("spaceModels", [])
+    return [
+        arc_space_name(space_id, model.get("value", {}) if isinstance(model, dict) else {})
+        for space_id, model in alternating_pairs(space_models)
+    ]
+
+
 def arc_workspace_themes(arc_profile: str | Path | None = None) -> Dict[str, Dict[str, Any]]:
     sidebar = load_arc_sidebar(arc_profile)
     space_models = sidebar.get("firebaseSyncState", {}).get("syncData", {}).get("spaceModels", [])
@@ -226,13 +265,20 @@ def sync_workspace_themes(
     zen_profile: str | Path | None = None,
     create_backups: bool = True,
     space_names: Iterable[str] | None = None,
+    default_theme: bool = False,
 ) -> bool:
-    """Sync Arc workspace themes into Zen workspaces."""
+    """Sync Arc workspace themes into Zen workspaces.
+
+    With default_theme, spaces without an Arc theme get Arc's default gradient.
+    """
     profile = resolve_zen_profile(zen_profile)
     themes = arc_workspace_themes(arc_profile)
-    if space_names is not None:
-        selected = set(space_names)
-        themes = {key: value for key, value in themes.items() if key in selected}
+    selected = set(space_names) if space_names is not None else set(arc_space_names(arc_profile))
+    themes = {key: value for key, value in themes.items() if key in selected}
+    if default_theme:
+        for name in sorted(selected - set(themes)):
+            themes[name] = arc_default_theme()
+            logger.info(f"   {name}: no Arc theme, using Arc's default colors")
     logger.info(f"Loaded {len(themes)} Arc workspace themes")
     for name, theme in themes.items():
         colors = [color["c"] for color in theme["gradientColors"]]

@@ -490,6 +490,10 @@ class MainWindow(QMainWindow):
         self.workspace_icons_check.setChecked(True)
         self.workspace_themes_check = QCheckBox("Workspace colors/themes")
         self.workspace_themes_check.setChecked(True)
+        self.default_theme_check = QCheckBox("Arc's default colors for spaces without a theme")
+        self.default_theme_check.setChecked(True)
+        self.default_theme_check.setToolTip("Spaces that use Arc's default look get its pink-to-lavender gradient instead of Zen's default.")
+        self.workspace_themes_check.toggled.connect(self.default_theme_check.setEnabled)
         self.containers_check = QCheckBox("Arc profiles as Zen containers")
         self.containers_check.setChecked(True)
         self.containers_check.setToolTip("Creates a Zen container per Arc profile and opens each migrated workspace in it.")
@@ -570,6 +574,7 @@ class MainWindow(QMainWindow):
             self.folder_states_check,
             self.workspace_icons_check,
             self.workspace_themes_check,
+            self.default_theme_check,
             self.containers_check,
             self.cookies_check,
             self.local_storage_check,
@@ -713,6 +718,7 @@ class MainWindow(QMainWindow):
             folder_states=self.folder_states_check.isChecked(),
             workspace_icons=self.workspace_icons_check.isChecked(),
             workspace_themes=self.workspace_themes_check.isChecked(),
+            default_theme=self.default_theme_check.isChecked(),
             containers=self.containers_check.isChecked(),
             cookies=self.cookies_check.isChecked(),
             passwords=self.passwords_check.isChecked(),

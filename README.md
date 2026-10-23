@@ -107,6 +107,8 @@ Useful switches:
 - `--no-folder-states`
 - `--no-workspace-icons`
 - `--no-workspace-themes`
+- `--no-default-theme` keeps Zen's colors on spaces without an Arc theme; by
+  default they get Arc's default gradient (`#fff1f2` → `#e3e3ff`)
 - Arc internal pages open as their Zen counterparts (`arc://downloads` →
   `about:downloads`, `arc://settings` → `about:preferences`, `arc://extensions`
   → `about:addons`, passwords → `about:logins`). Other `arc://` pages,

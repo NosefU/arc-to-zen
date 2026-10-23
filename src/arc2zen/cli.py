@@ -59,6 +59,11 @@ def parse_args() -> argparse.Namespace:
         help="Print the Arc space names that can be passed to --space and exit.",
     )
     parser.add_argument(
+        "--no-default-theme",
+        action="store_true",
+        help="Leave Zen's colors on spaces that have no Arc theme instead of using Arc's default gradient.",
+    )
+    parser.add_argument(
         "--no-containers",
         action="store_true",
         help="Do not create a Zen container per Arc profile or move workspaces into them.",
@@ -124,6 +129,7 @@ def main() -> int:
         folder_states=not args.no_folder_states,
         workspace_icons=not args.no_workspace_icons,
         workspace_themes=not args.no_workspace_themes,
+        default_theme=not args.no_default_theme,
         containers=not args.no_containers,
         cookies=args.cookies,
         passwords=args.passwords,

@@ -40,6 +40,7 @@ class MigrationOptions:
     folder_states: bool = True
     workspace_icons: bool = True
     workspace_themes: bool = True
+    default_theme: bool = True
     containers: bool = True
     cookies: bool = False
     passwords: bool = False
@@ -280,6 +281,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     zen_profile=options.zen_profile,
                     create_backups=options.create_backups,
                     space_names=options.spaces,
+                    default_theme=options.default_theme,
                 ),
             ),
         ),
