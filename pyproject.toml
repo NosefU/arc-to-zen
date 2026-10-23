@@ -9,6 +9,7 @@ description = "Migrate all Arc workspaces data into Zen."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+  "cryptography>=42",
   "lz4>=4.3.0",
 ]
 

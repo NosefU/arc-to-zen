@@ -57,6 +57,7 @@ class ArcSpace:
     folders: List[ArcFolder]
     icon: Optional[str] = None  # Emoji icon from Arc space
     color: Optional[dict] = None  # RGB color from Arc space theme
+    profile: Optional[str] = None  # Arc profile directory, e.g. "Default" or "Profile 2"
 
     def __str__(self):
         icon_str = f" ({self.icon})" if self.icon else ""
@@ -423,6 +424,9 @@ class ArcPinnedTabExtractor:
                             logger.info(f"    ✅ Preserved {len(orphaned_tabs)} Essential tabs without creating an 'Orphaned' workspace")
                         else:
                             logger.info(f"    ⏭️ Skipping 'Orphaned' workspace with {len(orphaned_tabs)} Essential tabs")
+
+        for space in arc_spaces:
+            space.profile = spaces_info.get(space.space_id, {}).get('profile')
 
         logger.info(f"Found {len(arc_spaces)} spaces with pinned tabs")
         return arc_spaces
@@ -1013,6 +1017,7 @@ class ArcPinnedTabExtractor:
                     'space_name': space.space_name,
                     'icon': space.icon,
                     'color': space.color,
+                    'arc_profile': space.profile,
                     'total_pinned_tabs': len(space.pinned_tabs),
                     'total_folders': len(space.folders),
                     'pinned_tabs': [tab.to_dict() for tab in space.pinned_tabs],

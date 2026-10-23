@@ -58,6 +58,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print the Arc space names that can be passed to --space and exit.",
     )
+    parser.add_argument(
+        "--no-containers",
+        action="store_true",
+        help="Do not create a Zen container per Arc profile or move workspaces into them.",
+    )
+    parser.add_argument(
+        "--cookies",
+        action="store_true",
+        help="Copy cookies of the migrated Arc profiles into their Zen containers. macOS asks for Keychain access.",
+    )
     parser.add_argument("--no-favicons", action="store_true", help="Do not copy cached Arc favicons.")
     parser.add_argument(
         "--no-folder-states",
@@ -99,6 +109,8 @@ def main() -> int:
         folder_states=not args.no_folder_states,
         workspace_icons=not args.no_workspace_icons,
         workspace_themes=not args.no_workspace_themes,
+        containers=not args.no_containers,
+        cookies=args.cookies,
         skip_orphaned=not args.include_orphaned,
         create_backups=not args.no_backups,
         spaces=tuple(args.spaces) if args.spaces else None,

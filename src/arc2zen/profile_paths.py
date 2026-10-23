@@ -108,6 +108,11 @@ def arc_favicons_path(profile: str | Path | None = None) -> Path:
     return resolve_arc_profile(profile) / "User Data" / "Default" / "Favicons"
 
 
+def arc_profile_dir(arc_profile_name: str, profile: str | Path | None = None) -> Path:
+    """Chromium profile folder inside Arc's User Data, e.g. User Data/Profile 2."""
+    return resolve_arc_profile(profile) / "User Data" / arc_profile_name
+
+
 def arc_favicons_paths(profile: str | Path | None = None) -> list[Path]:
     root = resolve_arc_profile(profile)
     user_data = root / "User Data"

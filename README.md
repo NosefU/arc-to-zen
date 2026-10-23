@@ -25,6 +25,9 @@ Pick the archive for your OS:
 - 👁️ pinned-folder open/closed state
 - 🎨 workspace icons and colors/themes
 - 🌐 cached favicons
+- 🧳 Arc profiles as Zen containers, each migrated workspace opening in its
+  profile's container
+- 🍪 optionally, cookies of those profiles, so sites stay signed in (macOS)
 
 ## GUI
 
@@ -99,7 +102,24 @@ Useful switches:
 - `--no-folder-states`
 - `--no-workspace-icons`
 - `--no-workspace-themes`
+- `--no-containers` keeps workspaces and tabs out of per-profile containers
+- `--cookies` copies the cookies of the migrated spaces' Arc profiles into
+  their containers
 - `--nuke-only`
+
+## Containers and Cookies
+
+Every Arc profile behind a migrated space becomes a Zen container named after
+its first space. Built-in Zen containers are reused by name, so `Personal` and
+`Work` keep ids 1 and 2. Each migrated workspace gets that container as its
+default, and its tabs and Essentials move into it.
+
+Cookie migration is on by default in the GUI and opt-in in the CLI
+(`--cookies`). It reads the Arc cookie key from the macOS
+Keychain item `Arc Safe Storage`, so macOS asks for permission first. Only
+persistent, unexpired, unpartitioned cookies are copied; existing Zen cookies
+with the same name, host, path, and container are overwritten. Session cookies
+are skipped. Arc on Windows is not supported yet.
 
 ## Profiles
 
