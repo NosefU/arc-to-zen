@@ -69,6 +69,11 @@ def parse_args() -> argparse.Namespace:
         help="Copy cookies of the migrated Arc profiles into their Zen containers. macOS asks for Keychain access.",
     )
     parser.add_argument(
+        "--local-storage",
+        action="store_true",
+        help="Copy web-site localStorage of the migrated Arc profiles into their Zen containers.",
+    )
+    parser.add_argument(
         "--passwords",
         action="store_true",
         help="Copy saved passwords of the migrated Arc profiles into Zen. Starts Zen headless on the target profile.",
@@ -122,6 +127,7 @@ def main() -> int:
         containers=not args.no_containers,
         cookies=args.cookies,
         passwords=args.passwords,
+        local_storage=args.local_storage,
         repair_tabs=not args.no_tab_repair,
         skip_orphaned=not args.include_orphaned,
         create_backups=not args.no_backups,

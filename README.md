@@ -29,6 +29,7 @@ Pick the archive for your OS:
   profile's container
 - 🍪 optionally, cookies of those profiles, so sites stay signed in (macOS)
 - 🔑 optionally, saved passwords of those profiles (macOS)
+- 🗄️ optionally, sites' localStorage of those profiles, in their containers
 
 ## GUI
 
@@ -118,6 +119,8 @@ Useful switches:
 - `--cookies` copies the cookies of the migrated spaces' Arc profiles into
   their containers
 - `--passwords` copies the saved passwords of those profiles into Zen
+- `--local-storage` copies sites' localStorage of those profiles into their
+  containers
 - `--nuke-only`
 
 ## Containers and Cookies
@@ -150,6 +153,19 @@ logins with its own key. Passwords never touch the disk in plain text.
   skipped; "never save" entries and federated sign-ins are not copied.
 - A Zen profile with a Primary Password is refused; remove it first.
 - Set `ZEN_BINARY` if Zen is not installed in a standard location.
+
+## localStorage
+
+localStorage migration is on by default in the GUI and opt-in in the CLI
+(`--local-storage`). It reads Arc's `Local Storage/leveldb` (a Chromium
+LevelDB, parsed in pure Python) and writes the values through a headless Zen
+into the container of each profile, so they land in Zen's own format.
+
+- Only web sites (`http`/`https`) are copied; extension storage is skipped.
+- Keys a site already has in Zen are kept, not overwritten.
+- Values over Zen's per-site quota (5 MB) are skipped and counted in the log.
+- IndexedDB and Session Storage are not migrated: converting Chromium's
+  IndexedDB format is fragile, and sites re-download that data themselves.
 
 ## Profiles
 

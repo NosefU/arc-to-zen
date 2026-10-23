@@ -495,6 +495,9 @@ class MainWindow(QMainWindow):
         self.containers_check.setToolTip("Creates a Zen container per Arc profile and opens each migrated workspace in it.")
         self.cookies_check = QCheckBox("Cookies of the selected profiles (stay signed in)")
         self.cookies_check.setChecked(True)
+        self.local_storage_check = QCheckBox("Site localStorage of the selected profiles")
+        self.local_storage_check.setChecked(True)
+        self.local_storage_check.setToolTip("Copies sites' localStorage (settings, some sign-ins) into the matching Zen containers. IndexedDB is not copied.")
         self.passwords_check = QCheckBox("Passwords of the selected profiles")
         self.passwords_check.setChecked(True)
         self.passwords_check.setToolTip("Adds Arc passwords to Zen's password manager; Zen starts briefly in the background with the target profile.")
@@ -569,6 +572,7 @@ class MainWindow(QMainWindow):
             self.workspace_themes_check,
             self.containers_check,
             self.cookies_check,
+            self.local_storage_check,
             self.passwords_check,
         ):
             options_layout.addWidget(checkbox)
@@ -712,6 +716,7 @@ class MainWindow(QMainWindow):
             containers=self.containers_check.isChecked(),
             cookies=self.cookies_check.isChecked(),
             passwords=self.passwords_check.isChecked(),
+            local_storage=self.local_storage_check.isChecked(),
             repair_tabs=self.repair_tabs_check.isChecked(),
             skip_orphaned=self.skip_orphaned_check.isChecked(),
             create_backups=self.backups_check.isChecked(),

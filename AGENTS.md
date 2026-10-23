@@ -154,7 +154,7 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     existing logins and refuses profiles with a Primary Password.
 
 - `src/arc2zen/zen_runner.py`
-  - Starts headless Zen on one profile with Marionette on a free port (set in
+  - `zen_session()` starts headless Zen on one profile with Marionette on a free port (set in
     `user.js`, restored afterwards), checks `ProfD` is that profile, runs a
     chrome-context script, and quits.
 
@@ -162,6 +162,15 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
   - Maps Arc internal pages (`arc://`, `chrome://`) to Zen `about:` pages and
     drops tabs Zen cannot open (`chrome-extension://`, `blob:`, unmapped
     internal pages). Applied in `migration.extract_arc_data` before export.
+
+- `src/arc2zen/chromium_leveldb.py`
+  - Pure-Python LevelDB reader (tables with Snappy blocks and logs; newest
+    sequence wins, deletions honored) for Chromium data.
+
+- `src/arc2zen/local_storage.py`
+  - Decodes Chromium localStorage keys (`_<origin>\x00<key>`, strings prefixed
+    with 0 = UTF-16LE or 1 = Latin-1) and writes them through
+    `Services.domStorageManager.createStorage` in a headless Zen per container.
 
 - `src/arc2zen/tab_repair.py`
   - Replaces tab URLs with hosts that fail IDNA round-trip (Zen throws
@@ -181,6 +190,7 @@ Arc:
 - `~/Library/Application Support/Arc/User Data/Default/Favicons`
 - `~/Library/Application Support/Arc/User Data/<profile>/Cookies`
 - `~/Library/Application Support/Arc/User Data/<profile>/Login Data`
+- `~/Library/Application Support/Arc/User Data/<profile>/Local Storage/leveldb`
 - `~/Library/Application Support/Arc/User Data/Local State`
 
 Zen:

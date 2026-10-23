@@ -8,6 +8,7 @@ Marionette on a free local port, and every temporary change is undone after.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -17,7 +18,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Iterator, List, Optional
 
 from .profile_paths import is_zen_profile_in_use
 
@@ -114,8 +115,12 @@ return true;
 """
 
 
-def run_in_zen(profile: Path, script: str, args: Optional[list] = None) -> Any:
-    """Start a headless Zen on profile, run script in the chrome context, and quit."""
+@contextlib.contextmanager
+def zen_session(profile: Path) -> Iterator[MarionetteClient]:
+    """Start a headless Zen on profile and yield a chrome-context Marionette client.
+
+    Zen quits and the temporary Marionette port is removed when the block ends.
+    """
     profile = Path(profile).resolve()
     if is_zen_profile_in_use(profile):
         raise ZenRunnerError(f"Zen is already running with this profile: {profile}")
@@ -137,14 +142,13 @@ def run_in_zen(profile: Path, script: str, args: Optional[list] = None) -> Any:
         actual = Path(client.execute(CHECK_PROFILE_SCRIPT, [])).resolve()
         if actual != profile:
             raise ZenRunnerError(f"Connected to a Zen running another profile ({actual}); stopping.")
-        result = client.execute(script, args or [])
-        try:
-            client.execute(QUIT_SCRIPT, [])
-        except ZenRunnerError:
-            pass  # the connection drops while Zen quits
-        return result
+        yield client
     finally:
         if client:
+            try:
+                client.execute(QUIT_SCRIPT, [])
+            except (ZenRunnerError, OSError):
+                pass  # the connection drops while Zen quits
             client.close()
         try:
             process.wait(timeout=60)
@@ -165,3 +169,9 @@ def run_in_zen(profile: Path, script: str, args: Optional[list] = None) -> Any:
                     "\n".join(l for l in text.splitlines() if l.strip() != line) + "\n",
                     encoding="utf-8",
                 )
+
+
+def run_in_zen(profile: Path, script: str, args: Optional[list] = None) -> Any:
+    """Start a headless Zen on profile, run script in the chrome context, and quit."""
+    with zen_session(profile) as client:
+        return client.execute(script, args or [])

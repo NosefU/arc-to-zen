@@ -11,6 +11,7 @@ from typing import Callable, Iterable
 from .arc_urls import convert_arc_url
 from .containers import sync_containers
 from .cookies import migrate_cookies
+from .local_storage import migrate_local_storage
 from .passwords import migrate_passwords
 from .extract import ArcPinnedTabExtractor
 from .favicons import migrate_favicons
@@ -42,6 +43,7 @@ class MigrationOptions:
     containers: bool = True
     cookies: bool = False
     passwords: bool = False
+    local_storage: bool = False
     repair_tabs: bool = True
     skip_orphaned: bool = True
     create_backups: bool = True
@@ -299,6 +301,18 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
             MigrationStep(
                 "Copy Arc profile cookies into Zen containers",
                 lambda: migrate_cookies(
+                    arc_profile=options.arc_profile,
+                    zen_profile=options.zen_profile,
+                    export_file=export_file,
+                    create_backups=options.create_backups,
+                ),
+            ),
+        ),
+        (
+            options.local_storage,
+            MigrationStep(
+                "Copy Arc profile localStorage into Zen containers",
+                lambda: migrate_local_storage(
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     export_file=export_file,

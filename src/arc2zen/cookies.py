@@ -135,10 +135,16 @@ def write_zen_cookies(con: sqlite3.Connection, cookies: List[Dict[str, Any]], us
     return len(cookies)
 
 
-def workspace_containers(profile: Path) -> Dict[str, int]:
-    """Map Zen workspace names to their default container ids."""
+def arc_profile_contexts(profile: Path, export_spaces: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Map each Arc profile behind the exported spaces to the Zen container of its first workspace."""
     data = read_mozilla_lz4(profile / "zen-sessions.jsonlz4")
-    return {space.get("name"): space.get("containerTabId") or 0 for space in data.get("spaces", [])}
+    containers_by_space = {space.get("name"): space.get("containerTabId") or 0 for space in data.get("spaces", [])}
+    context_by_profile: Dict[str, int] = {}
+    for space in export_spaces:
+        arc_profile_name = space.get("arc_profile")
+        if arc_profile_name and arc_profile_name not in context_by_profile:
+            context_by_profile[arc_profile_name] = containers_by_space.get(space["space_name"], 0)
+    return context_by_profile
 
 
 def backup_cookie_db(path: Path, timestamp: str) -> None:
@@ -161,12 +167,7 @@ def migrate_cookies(
     with open(Path(export_file).expanduser(), encoding="utf-8") as f:
         export_spaces = json.load(f).get("spaces", [])
 
-    containers_by_space = workspace_containers(profile)
-    context_by_profile: Dict[str, int] = {}
-    for space in export_spaces:
-        arc_profile_name = space.get("arc_profile")
-        if arc_profile_name and arc_profile_name not in context_by_profile:
-            context_by_profile[arc_profile_name] = containers_by_space.get(space["space_name"], 0)
+    context_by_profile = arc_profile_contexts(profile, export_spaces)
     if not context_by_profile:
         logger.info("No Arc profile information in the export; skipping cookies")
         return True
