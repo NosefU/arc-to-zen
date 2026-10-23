@@ -110,8 +110,9 @@ Useful switches:
 ## Containers and Cookies
 
 Every Arc profile behind a migrated space becomes a Zen container with the same
-name as the Arc profile. A profile that still has Chromium's generated name
-("Person 1") is named after its first space instead. Containers that already
+name as the Arc profile, so the unrenamed default profile becomes `Default`.
+Other profiles that still have Chromium's generated name ("Person 2") are named
+after their first space instead. Containers that already
 exist are reused by name, including the built-in `Personal` and `Work`. Each migrated workspace gets that container as its
 default, and its tabs and Essentials move into it.
 

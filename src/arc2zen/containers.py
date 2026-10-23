@@ -59,9 +59,10 @@ def ensure_container(containers: Dict[str, Any], name: str) -> tuple[int, bool]:
 
 
 def arc_profile_names(arc_profile: str | Path | None = None) -> Dict[str, str]:
-    """Names the user gave Arc profiles, keyed by profile folder ("Profile 2": "Work").
+    """Arc profile names as Arc shows them, keyed by profile folder ("Profile 2": "Work").
 
-    Profiles still on Chromium's generated name ("Person 1") are left out.
+    Arc shows its unrenamed default profile as "Default"; other profiles still on
+    Chromium's generated name ("Person 2") are left out.
     """
     try:
         local_state = resolve_arc_profile(arc_profile) / "User Data" / "Local State"
@@ -69,11 +70,17 @@ def arc_profile_names(arc_profile: str | Path | None = None) -> Dict[str, str]:
             info_cache = json.load(f).get("profile", {}).get("info_cache", {})
     except (OSError, ValueError):
         return {}
-    return {
-        folder: info["name"]
-        for folder, info in info_cache.items()
-        if info.get("name") and not info.get("is_using_default_name") and not info["name"].startswith("__ARC_")
-    }
+    names = {}
+    for folder, info in info_cache.items():
+        name = info.get("name")
+        if not name or name.startswith("__ARC_"):
+            continue
+        if info.get("is_using_default_name"):
+            if folder == "Default":
+                names[folder] = "Default"
+            continue
+        names[folder] = name
+    return names
 
 
 def spaces_by_arc_profile(export_spaces: List[Dict[str, Any]]) -> Dict[str, List[str]]:

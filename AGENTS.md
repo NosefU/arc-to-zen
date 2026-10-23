@@ -131,7 +131,8 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
 - `src/arc2zen/containers.py`
   - Groups exported spaces by Arc profile (`arc_profile` in the export) and
     creates or reuses a Zen container per profile in `containers.json`, named
-    after the Arc profile (`User Data/Local State`) or, for profiles with a
+    after the Arc profile (`User Data/Local State`; the unrenamed default
+    profile is `Default`, as in Arc's UI) or, for other profiles with a
     generated name, after the profile's first space.
   - Sets each workspace's `containerTabId` and moves its tabs into it.
 
