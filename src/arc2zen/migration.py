@@ -16,6 +16,7 @@ from .favicons import migrate_favicons
 from .folder_states import sync_folder_states
 from .profile_paths import is_zen_profile_in_use, resolve_zen_profile
 from .sessions import import_arc_export
+from .tab_repair import repair_broken_tabs
 from .workspace_icons import sync_workspace_icons
 from .workspace_themes import sync_workspace_themes
 
@@ -40,6 +41,7 @@ class MigrationOptions:
     containers: bool = True
     cookies: bool = False
     passwords: bool = False
+    repair_tabs: bool = True
     skip_orphaned: bool = True
     create_backups: bool = True
     auto_close_zen: bool = True
@@ -195,6 +197,16 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
     ]
 
     optional_steps: Iterable[tuple[bool, MigrationStep]] = (
+        (
+            options.repair_tabs,
+            MigrationStep(
+                "Repair tabs with invalid URLs",
+                lambda: repair_broken_tabs(
+                    zen_profile=options.zen_profile,
+                    create_backups=options.create_backups,
+                ),
+            ),
+        ),
         (
             options.favicons,
             MigrationStep(

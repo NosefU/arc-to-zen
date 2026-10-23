@@ -479,6 +479,9 @@ class MainWindow(QMainWindow):
         self.core_check.setChecked(True)
         self.core_check.setEnabled(False)
 
+        self.repair_tabs_check = QCheckBox("Repair tabs with invalid URLs")
+        self.repair_tabs_check.setChecked(True)
+        self.repair_tabs_check.setToolTip("Replaces URLs Zen cannot parse (e.g. bad punycode hosts) with about:blank; such tabs break Zen's menus.")
         self.favicons_check = QCheckBox("Favicons")
         self.favicons_check.setChecked(True)
         self.folder_states_check = QCheckBox("Pinned-folder open/closed state")
@@ -559,6 +562,7 @@ class MainWindow(QMainWindow):
         options_card, options_layout = self._card("Choose what to migrate")
         for checkbox in (
             self.core_check,
+            self.repair_tabs_check,
             self.favicons_check,
             self.folder_states_check,
             self.workspace_icons_check,
@@ -708,6 +712,7 @@ class MainWindow(QMainWindow):
             containers=self.containers_check.isChecked(),
             cookies=self.cookies_check.isChecked(),
             passwords=self.passwords_check.isChecked(),
+            repair_tabs=self.repair_tabs_check.isChecked(),
             skip_orphaned=self.skip_orphaned_check.isChecked(),
             create_backups=self.backups_check.isChecked(),
             auto_close_zen=self.auto_close_zen_check.isChecked(),

@@ -103,6 +103,9 @@ Useful switches:
 - `--no-folder-states`
 - `--no-workspace-icons`
 - `--no-workspace-themes`
+- `--no-tab-repair` keeps tab URLs Zen cannot parse; by default they become
+  `about:blank`, because such a tab (for example a bad punycode host like
+  `ww.xn--15-.example.org`) makes Zen's menus stop responding
 - `--no-containers` keeps workspaces and tabs out of per-profile containers
 - `--cookies` copies the cookies of the migrated spaces' Arc profiles into
   their containers

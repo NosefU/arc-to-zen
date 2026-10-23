@@ -158,6 +158,11 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     `user.js`, restored afterwards), checks `ProfD` is that profile, runs a
     chrome-context script, and quits.
 
+- `src/arc2zen/tab_repair.py`
+  - Replaces tab URLs with hosts that fail IDNA round-trip (Zen throws
+    `NS_ERROR_MALFORMED_URI` and its menus stop working) with `about:blank` in
+    all session files, including `recovery.baklz4` and `previous.jsonlz4`.
+
 - `src/arc2zen/workspace_themes.py`
   - Converts Arc gradient or single-color workspace themes into Zen workspace
     `theme.gradientColors`, `opacity`, and `texture`.

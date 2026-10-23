@@ -73,6 +73,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Copy saved passwords of the migrated Arc profiles into Zen. Starts Zen headless on the target profile.",
     )
+    parser.add_argument(
+        "--no-tab-repair",
+        action="store_true",
+        help="Keep tab URLs with invalid hosts instead of replacing them with about:blank.",
+    )
     parser.add_argument("--no-favicons", action="store_true", help="Do not copy cached Arc favicons.")
     parser.add_argument(
         "--no-folder-states",
@@ -117,6 +122,7 @@ def main() -> int:
         containers=not args.no_containers,
         cookies=args.cookies,
         passwords=args.passwords,
+        repair_tabs=not args.no_tab_repair,
         skip_orphaned=not args.include_orphaned,
         create_backups=not args.no_backups,
         spaces=tuple(args.spaces) if args.spaces else None,
