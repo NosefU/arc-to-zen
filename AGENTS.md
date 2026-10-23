@@ -144,6 +144,20 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
   - `ARC_SAFE_STORAGE_PASSWORD` overrides the Keychain lookup for tests with
     synthetic cookie databases. Never log cookie values.
 
+- `src/arc2zen/arc_crypto.py`
+  - Reads the `Arc Safe Storage` Keychain password once per run and decrypts
+    Chromium `v10` values; shared by cookies and passwords.
+
+- `src/arc2zen/passwords.py`
+  - Reads Arc `Login Data` / `Login Data For Account`, decrypts passwords, and
+    adds them through `Services.logins.addLogins` in a headless Zen. Skips
+    existing logins and refuses profiles with a Primary Password.
+
+- `src/arc2zen/zen_runner.py`
+  - Starts headless Zen on one profile with Marionette on a free port (set in
+    `user.js`, restored afterwards), checks `ProfD` is that profile, runs a
+    chrome-context script, and quits.
+
 - `src/arc2zen/workspace_themes.py`
   - Converts Arc gradient or single-color workspace themes into Zen workspace
     `theme.gradientColors`, `opacity`, and `texture`.
@@ -156,6 +170,8 @@ Arc:
 - `~/Library/Application Support/Arc/StorableWindows.json`
 - `~/Library/Application Support/Arc/User Data/Default/Favicons`
 - `~/Library/Application Support/Arc/User Data/<profile>/Cookies`
+- `~/Library/Application Support/Arc/User Data/<profile>/Login Data`
+- `~/Library/Application Support/Arc/User Data/Local State`
 
 Zen:
 

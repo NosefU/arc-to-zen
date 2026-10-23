@@ -68,6 +68,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Copy cookies of the migrated Arc profiles into their Zen containers. macOS asks for Keychain access.",
     )
+    parser.add_argument(
+        "--passwords",
+        action="store_true",
+        help="Copy saved passwords of the migrated Arc profiles into Zen. Starts Zen headless on the target profile.",
+    )
     parser.add_argument("--no-favicons", action="store_true", help="Do not copy cached Arc favicons.")
     parser.add_argument(
         "--no-folder-states",
@@ -111,6 +116,7 @@ def main() -> int:
         workspace_themes=not args.no_workspace_themes,
         containers=not args.no_containers,
         cookies=args.cookies,
+        passwords=args.passwords,
         skip_orphaned=not args.include_orphaned,
         create_backups=not args.no_backups,
         spaces=tuple(args.spaces) if args.spaces else None,

@@ -28,6 +28,7 @@ Pick the archive for your OS:
 - 🧳 Arc profiles as Zen containers, each migrated workspace opening in its
   profile's container
 - 🍪 optionally, cookies of those profiles, so sites stay signed in (macOS)
+- 🔑 optionally, saved passwords of those profiles (macOS)
 
 ## GUI
 
@@ -105,6 +106,7 @@ Useful switches:
 - `--no-containers` keeps workspaces and tabs out of per-profile containers
 - `--cookies` copies the cookies of the migrated spaces' Arc profiles into
   their containers
+- `--passwords` copies the saved passwords of those profiles into Zen
 - `--nuke-only`
 
 ## Containers and Cookies
@@ -122,6 +124,21 @@ Keychain item `Arc Safe Storage`, so macOS asks for permission first. Only
 persistent, unexpired, unpartitioned cookies are copied; existing Zen cookies
 with the same name, host, path, and container are overwritten. Session cookies
 are skipped. Arc on Windows is not supported yet.
+
+## Passwords
+
+Password migration is on by default in the GUI and opt-in in the CLI
+(`--passwords`). It decrypts Arc's `Login Data` and `Login Data For Account`
+with the same Keychain key as cookies (macOS asks once per run), then starts
+Zen headless on the target profile for a few seconds so Zen encrypts the
+logins with its own key. Passwords never touch the disk in plain text.
+
+- Zen keeps passwords per profile, not per container, so logins of all selected
+  Arc profiles end up in one password manager.
+- Logins that already exist for the same site, auth kind, and username are
+  skipped; "never save" entries and federated sign-ins are not copied.
+- A Zen profile with a Primary Password is refused; remove it first.
+- Set `ZEN_BINARY` if Zen is not installed in a standard location.
 
 ## Profiles
 

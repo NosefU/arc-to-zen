@@ -6,18 +6,15 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import os
 import shutil
 import sqlite3
-import subprocess
-import sys
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
+from .arc_crypto import ArcDecryptionError as CookieDecryptionError
+from .arc_crypto import ChromiumDecryptor, arc_safe_storage_password
 from .profile_paths import arc_profile_dir
 from .sessions import read_mozilla_lz4, resolve_zen_profile
 
@@ -36,51 +33,14 @@ SAMESITE_MAP = {-1: 256, 0: 0, 1: 1, 2: 2}
 SCHEME_HTTP = 1
 SCHEME_HTTPS = 2
 
-KEYCHAIN_SERVICE = "Arc Safe Storage"
-PASSWORD_ENV = "ARC_SAFE_STORAGE_PASSWORD"
-
-
-class CookieDecryptionError(RuntimeError):
-    pass
-
-
-def arc_safe_storage_password() -> bytes:
-    """Read Arc's cookie password from the macOS Keychain; macOS asks the user first."""
-    override = os.environ.get(PASSWORD_ENV)
-    if override:
-        return override.encode()
-    if sys.platform != "darwin":
-        raise CookieDecryptionError("Cookie migration is only supported for Arc on macOS for now.")
-    try:
-        result = subprocess.run(
-            ["security", "find-generic-password", "-w", "-s", KEYCHAIN_SERVICE],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    except subprocess.CalledProcessError as exc:
-        raise CookieDecryptionError(
-            f'Could not read "{KEYCHAIN_SERVICE}" from the Keychain (access denied or not found).'
-        ) from exc
-    return result.stdout.rstrip("\n").encode()
-
-
 class ChromiumCookieDecryptor:
-    """Decrypts macOS Chromium "v10" cookie values (AES-128-CBC, PBKDF2 key)."""
+    """Decrypts Arc cookie values, removing the host hash newer cookie databases add."""
 
     def __init__(self, password: bytes):
-        key = hashlib.pbkdf2_hmac("sha1", password, b"saltysalt", 1003, 16)
-        self._cipher = Cipher(algorithms.AES(key), modes.CBC(b" " * 16))
+        self._decryptor = ChromiumDecryptor(password)
 
     def decrypt(self, encrypted: bytes, host_key: str, db_version: int) -> str:
-        if encrypted[:3] != b"v10":
-            raise CookieDecryptionError(f"unsupported cookie encryption {encrypted[:3]!r}")
-        decryptor = self._cipher.decryptor()
-        padded = decryptor.update(encrypted[3:]) + decryptor.finalize()
-        pad = padded[-1] if padded else 0
-        if not 1 <= pad <= 16 or padded[-pad:] != bytes([pad]) * pad:
-            raise CookieDecryptionError("bad padding; wrong Keychain password?")
-        plain = padded[:-pad]
+        plain = self._decryptor.decrypt(encrypted)
         if db_version >= HOST_HASH_DB_VERSION:
             if plain[:32] != hashlib.sha256(host_key.encode()).digest():
                 raise CookieDecryptionError("host hash mismatch; wrong Keychain password?")

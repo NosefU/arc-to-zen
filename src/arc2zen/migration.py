@@ -10,6 +10,7 @@ from typing import Callable, Iterable
 
 from .containers import sync_containers
 from .cookies import migrate_cookies
+from .passwords import migrate_passwords
 from .extract import ArcPinnedTabExtractor
 from .favicons import migrate_favicons
 from .folder_states import sync_folder_states
@@ -38,6 +39,7 @@ class MigrationOptions:
     workspace_themes: bool = True
     containers: bool = True
     cookies: bool = False
+    passwords: bool = False
     skip_orphaned: bool = True
     create_backups: bool = True
     auto_close_zen: bool = True
@@ -258,6 +260,18 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
             MigrationStep(
                 "Copy Arc profile cookies into Zen containers",
                 lambda: migrate_cookies(
+                    arc_profile=options.arc_profile,
+                    zen_profile=options.zen_profile,
+                    export_file=export_file,
+                    create_backups=options.create_backups,
+                ),
+            ),
+        ),
+        (
+            options.passwords,
+            MigrationStep(
+                "Copy Arc profile passwords into Zen",
+                lambda: migrate_passwords(
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     export_file=export_file,

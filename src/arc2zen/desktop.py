@@ -492,6 +492,9 @@ class MainWindow(QMainWindow):
         self.containers_check.setToolTip("Creates a Zen container per Arc profile and opens each migrated workspace in it.")
         self.cookies_check = QCheckBox("Cookies of the selected profiles (stay signed in)")
         self.cookies_check.setChecked(True)
+        self.passwords_check = QCheckBox("Passwords of the selected profiles")
+        self.passwords_check.setChecked(True)
+        self.passwords_check.setToolTip("Adds Arc passwords to Zen's password manager; Zen starts briefly in the background with the target profile.")
         self.cookies_check.setToolTip("Copies Arc cookies into the matching Zen containers. macOS asks for access to \"Arc Safe Storage\" in the Keychain.")
         self.skip_orphaned_check = QCheckBox('Skip "Orphaned" workspace')
         self.skip_orphaned_check.setChecked(True)
@@ -562,6 +565,7 @@ class MainWindow(QMainWindow):
             self.workspace_themes_check,
             self.containers_check,
             self.cookies_check,
+            self.passwords_check,
         ):
             options_layout.addWidget(checkbox)
 
@@ -703,6 +707,7 @@ class MainWindow(QMainWindow):
             workspace_themes=self.workspace_themes_check.isChecked(),
             containers=self.containers_check.isChecked(),
             cookies=self.cookies_check.isChecked(),
+            passwords=self.passwords_check.isChecked(),
             skip_orphaned=self.skip_orphaned_check.isChecked(),
             create_backups=self.backups_check.isChecked(),
             auto_close_zen=self.auto_close_zen_check.isChecked(),
