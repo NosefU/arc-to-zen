@@ -246,6 +246,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
             MigrationStep(
                 "Assign Arc profiles to Zen containers",
                 lambda: sync_containers(
+                    arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     export_file=export_file,
                     create_backups=options.create_backups,

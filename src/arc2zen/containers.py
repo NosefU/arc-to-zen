@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .profile_paths import zen_session_files
+from .profile_paths import resolve_arc_profile, zen_session_files
 from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
 
 logger = logging.getLogger(__name__)
@@ -56,6 +56,24 @@ def ensure_container(containers: Dict[str, Any], name: str) -> tuple[int, bool]:
     )
     containers["lastUserContextId"] = context_id
     return context_id, True
+
+
+def arc_profile_names(arc_profile: str | Path | None = None) -> Dict[str, str]:
+    """Names the user gave Arc profiles, keyed by profile folder ("Profile 2": "Work").
+
+    Profiles still on Chromium's generated name ("Person 1") are left out.
+    """
+    try:
+        local_state = resolve_arc_profile(arc_profile) / "User Data" / "Local State"
+        with open(local_state, encoding="utf-8") as f:
+            info_cache = json.load(f).get("profile", {}).get("info_cache", {})
+    except (OSError, ValueError):
+        return {}
+    return {
+        folder: info["name"]
+        for folder, info in info_cache.items()
+        if info.get("name") and not info.get("is_using_default_name") and not info["name"].startswith("__ARC_")
+    }
 
 
 def spaces_by_arc_profile(export_spaces: List[Dict[str, Any]]) -> Dict[str, List[str]]:
@@ -108,6 +126,7 @@ def backup(path: Path, timestamp: str) -> None:
 
 
 def sync_containers(
+    arc_profile: str | Path | None = None,
     zen_profile: str | Path | None = None,
     export_file: str | Path = "arc_pinned_tabs_export.json",
     create_backups: bool = True,
@@ -126,14 +145,16 @@ def sync_containers(
     containers_path = profile / "containers.json"
     containers = load_containers(containers_path)
 
+    profile_names = arc_profile_names(arc_profile)
     containers_by_space: Dict[str, int] = {}
     created = 0
-    for arc_profile, space_names in grouped.items():
-        # Name the container after the first space so it reads like Arc's sidebar
-        context_id, is_new = ensure_container(containers, space_names[0])
+    for profile_folder, space_names in grouped.items():
+        # Use the Arc profile name; unnamed profiles take their first space's name
+        name = profile_names.get(profile_folder) or space_names[0]
+        context_id, is_new = ensure_container(containers, name)
         created += int(is_new)
         verb = "Created" if is_new else "Using"
-        logger.info(f"   {verb} container {space_names[0]!r} ({context_id}) for Arc profile {arc_profile!r}: {', '.join(space_names)}")
+        logger.info(f"   {verb} container {name!r} ({context_id}) for Arc profile {profile_folder!r}: {', '.join(space_names)}")
         for name in space_names:
             containers_by_space[name] = context_id
 
