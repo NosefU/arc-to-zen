@@ -662,6 +662,14 @@ def import_arc_export(
 
     rename_legacy_workspaces(zen_data, arc_data['spaces'])
 
+    if nuke:
+        # A clean rebuild keeps only the workspaces Arc provides, dropping Zen's default "Space"
+        arc_names = {arc_space['space_name'] for arc_space in arc_data['spaces']}
+        dropped = [space.get('name') for space in zen_data['spaces'] if space.get('name') not in arc_names]
+        zen_data['spaces'] = [space for space in zen_data['spaces'] if space.get('name') in arc_names]
+        if dropped:
+            logger.info(f"🧹 Removed Zen workspaces not in Arc: {', '.join(map(str, dropped))}")
+
     if space_names is None:
         # Clear existing tabs, folders, groups (fresh start)
         reset_zen_session_state(zen_data)

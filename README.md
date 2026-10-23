@@ -87,7 +87,8 @@ python cli.py --nuke
 
 `--nuke` clears existing Zen tabs, folders, pins, groups, closed-tab state, and
 regular bookmarks before importing Arc data, even when only some spaces are
-selected. Backups are created unless
+selected. It also removes Zen workspaces that are not being migrated, such as
+the default `Space` of a new profile. Backups are created unless
 `--no-backups` is used.
 
 Useful switches:
