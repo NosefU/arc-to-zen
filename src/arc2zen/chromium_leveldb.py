@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import struct
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Tuple
+from typing import Callable, Dict, Iterator, Optional, Tuple
 
 TABLE_MAGIC = 0xDB4775248B80FB57
 LOG_BLOCK_SIZE = 32768
@@ -158,11 +158,16 @@ def write_batch_records(batch: bytes) -> Iterator[Tuple[bytes, int, int, bytes]]
         yield key, sequence + index, kind, value
 
 
-def read_leveldb(directory: Path) -> Dict[bytes, bytes]:
-    """Return the live key/value pairs of a LevelDB directory."""
+def read_leveldb(directory: Path, key_filter: Optional[Callable[[bytes], bool]] = None) -> Dict[bytes, bytes]:
+    """Return the live key/value pairs of a LevelDB directory.
+
+    key_filter keeps memory low on large databases by dropping other keys early.
+    """
     newest: Dict[bytes, Tuple[int, int, bytes]] = {}
 
     def add(key: bytes, sequence: int, kind: int, value: bytes) -> None:
+        if key_filter is not None and not key_filter(key):
+            return
         current: Optional[Tuple[int, int, bytes]] = newest.get(key)
         if current is None or sequence > current[0]:
             newest[key] = (sequence, kind, value)

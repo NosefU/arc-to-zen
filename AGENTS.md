@@ -172,6 +172,13 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     with 0 = UTF-16LE or 1 = Latin-1) and writes them through
     `Services.domStorageManager.createStorage` in a headless Zen per container.
 
+- `src/arc2zen/boosts.py`
+  - Reads Arc boosts from the Firestore LevelDB cache
+    (`firestore/Arc/bcny-arc-server/main`, `remote_document` keys under
+    `boosts`, protobuf `MaybeDocument` with a JSON `data` field of css/js/zaps)
+    and writes Zen's `zen-boosts.jsonlz4` (keyed by host) plus
+    `zen-boosts/<id>.css`, using the Arc boost id so re-runs update in place.
+
 - `src/arc2zen/tab_repair.py`
   - Replaces tab URLs with hosts that fail IDNA round-trip (Zen throws
     `NS_ERROR_MALFORMED_URI` and its menus stop working) with `about:blank` in

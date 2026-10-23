@@ -64,6 +64,11 @@ def parse_args() -> argparse.Namespace:
         help="Leave Zen's colors on spaces that have no Arc theme instead of using Arc's default gradient.",
     )
     parser.add_argument(
+        "--no-boosts",
+        action="store_true",
+        help="Do not copy Arc boosts (custom CSS per site) into Zen boosts.",
+    )
+    parser.add_argument(
         "--no-containers",
         action="store_true",
         help="Do not create a Zen container per Arc profile or move workspaces into them.",
@@ -131,6 +136,7 @@ def main() -> int:
         workspace_themes=not args.no_workspace_themes,
         default_theme=not args.no_default_theme,
         containers=not args.no_containers,
+        boosts=not args.no_boosts,
         cookies=args.cookies,
         passwords=args.passwords,
         local_storage=args.local_storage,

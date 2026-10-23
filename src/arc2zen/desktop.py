@@ -494,6 +494,9 @@ class MainWindow(QMainWindow):
         self.default_theme_check.setChecked(True)
         self.default_theme_check.setToolTip("Spaces that use Arc's default look get its pink-to-lavender gradient instead of Zen's default.")
         self.workspace_themes_check.toggled.connect(self.default_theme_check.setEnabled)
+        self.boosts_check = QCheckBox("Boosts")
+        self.boosts_check.setChecked(True)
+        self.boosts_check.setToolTip("Copies every Arc boost's CSS into Zen boosts for the same site; boosts belong to the Arc account, not to a space. Zen boosts have no JavaScript.")
         self.containers_check = QCheckBox("Arc profiles as Zen containers")
         self.containers_check.setChecked(True)
         self.containers_check.setToolTip("Creates a Zen container per Arc profile and opens each migrated workspace in it.")
@@ -575,6 +578,7 @@ class MainWindow(QMainWindow):
             self.workspace_icons_check,
             self.workspace_themes_check,
             self.default_theme_check,
+            self.boosts_check,
             self.containers_check,
             self.cookies_check,
             self.local_storage_check,
@@ -720,6 +724,7 @@ class MainWindow(QMainWindow):
             workspace_themes=self.workspace_themes_check.isChecked(),
             default_theme=self.default_theme_check.isChecked(),
             containers=self.containers_check.isChecked(),
+            boosts=self.boosts_check.isChecked(),
             cookies=self.cookies_check.isChecked(),
             passwords=self.passwords_check.isChecked(),
             local_storage=self.local_storage_check.isChecked(),

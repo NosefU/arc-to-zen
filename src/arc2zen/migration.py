@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 from .arc_urls import convert_arc_url
+from .boosts import migrate_boosts
 from .containers import sync_containers
 from .cookies import migrate_cookies
 from .local_storage import migrate_local_storage
@@ -46,6 +47,7 @@ class MigrationOptions:
     passwords: bool = False
     local_storage: bool = False
     repair_tabs: bool = True
+    boosts: bool = True
     skip_orphaned: bool = True
     create_backups: bool = True
     auto_close_zen: bool = True
@@ -282,6 +284,17 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     create_backups=options.create_backups,
                     space_names=options.spaces,
                     default_theme=options.default_theme,
+                ),
+            ),
+        ),
+        (
+            options.boosts,
+            MigrationStep(
+                "Copy Arc boosts",
+                lambda: migrate_boosts(
+                    arc_profile=options.arc_profile,
+                    zen_profile=options.zen_profile,
+                    create_backups=options.create_backups,
                 ),
             ),
         ),

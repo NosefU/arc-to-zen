@@ -29,6 +29,7 @@ Pick the archive for your OS:
   profile's container
 - 🍪 optionally, cookies of those profiles, so sites stay signed in (macOS)
 - 🔑 optionally, saved passwords of those profiles (macOS)
+- 🚀 Arc boosts as Zen boosts (CSS per site)
 - 🗄️ optionally, sites' localStorage of those profiles, in their containers
 
 ## GUI
@@ -117,6 +118,7 @@ Useful switches:
 - `--no-tab-repair` keeps tab URLs Zen cannot parse; by default they become
   `about:blank`, because such a tab (for example a bad punycode host like
   `ww.xn--15-.example.org`) makes Zen's menus stop responding
+- `--no-boosts` skips Arc boosts
 - `--no-containers` keeps workspaces and tabs out of per-profile containers
 - `--cookies` copies the cookies of the migrated spaces' Arc profiles into
   their containers
@@ -168,6 +170,17 @@ into the container of each profile, so they land in Zen's own format.
 - Values over Zen's per-site quota (5 MB) are skipped and counted in the log.
 - IndexedDB and Session Storage are not migrated: converting Chromium's
   IndexedDB format is fragile, and sites re-download that data themselves.
+
+## Boosts
+
+Arc keeps boosts in its account data; the migration reads the local Firestore
+cache in `~/Library/Application Support/firestore/Arc` (next to the Arc data
+folder) and adds each boost to Zen for the same host, with its CSS, name, and
+zap selectors. Boosts belong to the Arc account, so all of them are copied
+regardless of the selected spaces. A boost active in Arc becomes the active Zen
+boost for its site unless Zen already has one active there. Zen boosts have no
+JavaScript, so a boost's JS is not copied; the log names those boosts.
+Re-running updates the same boosts instead of duplicating them.
 
 ## Profiles
 
