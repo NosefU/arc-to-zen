@@ -31,13 +31,19 @@ Pick the archive for your OS:
 1. Close Arc and Zen.
 2. Open the downloaded app.
 3. Choose the Arc data folder and target Zen profile.
-4. Choose what to migrate.
-5. Use **Options** to skip the synthetic `Orphaned` workspace, create backups,
-   and let the app close Zen automatically.
-6. Optionally enable **Clear out Zen profile before migration** to rebuild Zen
+4. In **Spaces**, uncheck the Arc spaces you do not want to migrate.
+5. Choose what to migrate.
+6. Use **Options** to skip the synthetic `Orphaned` workspace, create backups,
+   and let the app close Zen automatically. Only the Zen running the target
+   profile is closed; Zen windows of other profiles keep running.
+7. Optionally enable **Clear out Zen profile before migration** to rebuild Zen
    from Arc.
-7. Start the migration and wait for the progress log to finish.
-8. Open Zen.
+8. Start the migration and wait for the progress log to finish.
+9. Open Zen.
+
+When only some spaces are selected, the migration replaces just the Zen
+workspaces with the same names and keeps every other workspace, so spaces can
+be migrated one at a time.
 
 ## macOS Unsigned App
 
@@ -76,13 +82,17 @@ python cli.py --nuke
 ```
 
 `--nuke` clears existing Zen tabs, folders, pins, groups, closed-tab state, and
-regular bookmarks before importing Arc data. Backups are created unless
+regular bookmarks before importing Arc data, even when only some spaces are
+selected. Backups are created unless
 `--no-backups` is used.
 
 Useful switches:
 
 - `--arc-profile PATH`
 - `--zen-profile PATH`
+- `--list-spaces` prints the Arc space names
+- `--space NAME` migrates only that space; repeat it to pick several. Other Zen
+  workspaces are kept
 - `--include-orphaned` creates a separate workspace for unmatched Essentials
 - `--no-backups`
 - `--no-favicons`

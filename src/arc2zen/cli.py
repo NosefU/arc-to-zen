@@ -7,7 +7,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from .migration import MigrationOptions, nuke_zen_profile_only, run_migration
+from .migration import MigrationOptions, list_arc_spaces, nuke_zen_profile_only, run_migration
 
 
 def parse_args() -> argparse.Namespace:
@@ -46,6 +46,18 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Do not create backups before changing Zen profile files.",
     )
+    parser.add_argument(
+        "--space",
+        action="append",
+        dest="spaces",
+        metavar="NAME",
+        help="Migrate only this Arc space. Repeat to select several; other Zen workspaces are kept.",
+    )
+    parser.add_argument(
+        "--list-spaces",
+        action="store_true",
+        help="Print the Arc space names that can be passed to --space and exit.",
+    )
     parser.add_argument("--no-favicons", action="store_true", help="Do not copy cached Arc favicons.")
     parser.add_argument(
         "--no-folder-states",
@@ -65,8 +77,17 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s", force=True)
     args = parse_args()
 
+    if args.list_spaces:
+        for name in list_arc_spaces(args.arc_profile, include_orphaned=args.include_orphaned):
+            print(name)
+        return 0
+
     if args.nuke_only:
-        nuke_zen_profile_only(args.zen_profile, create_backups=not args.no_backups)
+        try:
+            nuke_zen_profile_only(args.zen_profile, create_backups=not args.no_backups)
+        except RuntimeError as exc:
+            logging.error(f"❌ {exc}")
+            return 1
         return 0
 
     options = MigrationOptions(
@@ -80,8 +101,13 @@ def main() -> int:
         workspace_themes=not args.no_workspace_themes,
         skip_orphaned=not args.include_orphaned,
         create_backups=not args.no_backups,
+        spaces=tuple(args.spaces) if args.spaces else None,
     )
-    run_migration(options)
+    try:
+        run_migration(options)
+    except RuntimeError as exc:
+        logging.error(f"❌ {exc}")
+        return 1
     return 0
 
 

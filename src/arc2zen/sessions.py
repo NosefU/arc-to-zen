@@ -13,7 +13,7 @@ import hashlib
 import argparse
 import sqlite3
 from pathlib import Path
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Dict, Iterable, List, Any, Tuple, Optional
 from datetime import datetime
 import shutil
 import copy
@@ -422,6 +422,48 @@ def reset_zen_session_state(data: Dict[str, Any], clear_window_history: bool = F
     data["splitViewData"] = []
 
 
+def reset_zen_workspaces(data: Dict[str, Any], workspace_uuids: set[str]) -> int:
+    """Clear tabs, folders, groups, and split views of the given Zen workspaces only.
+
+    Other workspaces and Essentials without a workspace keep their state, so
+    spaces can be migrated one at a time. Returns the number of removed tabs.
+    """
+    if not workspace_uuids:
+        return 0
+
+    tabs = data.get("tabs", [])
+    removed_tabs = [tab for tab in tabs if tab.get("zenWorkspace") in workspace_uuids]
+    data["tabs"] = [tab for tab in tabs if tab.get("zenWorkspace") not in workspace_uuids]
+
+    folders = data.get("folders", [])
+    removed_folder_ids = {
+        folder.get("id") for folder in folders if folder.get("workspaceId") in workspace_uuids
+    }
+    data["folders"] = [folder for folder in folders if folder.get("id") not in removed_folder_ids]
+
+    # Folder groups share the folder id; split-view groups are only referenced by their tabs.
+    kept_group_ids = {tab.get("groupId") for tab in data["tabs"] if tab.get("groupId")}
+    kept_group_ids.update(folder.get("id") for folder in data["folders"])
+    removed_group_ids = {tab.get("groupId") for tab in removed_tabs if tab.get("groupId")}
+    removed_group_ids |= removed_folder_ids
+    data["groups"] = [
+        group
+        for group in data.get("groups", [])
+        if group.get("id") not in removed_group_ids or group.get("id") in kept_group_ids
+    ]
+
+    removed_sync_ids = {tab.get("zenSyncId") for tab in removed_tabs if tab.get("zenSyncId")}
+    split_views = data.get("splitViewData")
+    if isinstance(split_views, list) and removed_sync_ids:
+        data["splitViewData"] = [
+            view
+            for view in split_views
+            if not any(sync_id in json.dumps(view) for sync_id in removed_sync_ids)
+        ]
+
+    return len(removed_tabs)
+
+
 def nuke_bookmarks(profile: Path, timestamp: str, create_backups: bool = True) -> int:
     """Remove all non-root Firefox/Zen bookmarks from places.sqlite."""
     places = profile / "places.sqlite"
@@ -553,8 +595,13 @@ def import_arc_export(
     nuke: bool = False,
     nuke_only: bool = False,
     create_backups: bool = True,
+    space_names: Iterable[str] | None = None,
 ) -> bool:
-    """Import an Arc export into the resolved Zen profile."""
+    """Import an Arc export into the resolved Zen profile.
+
+    With space_names only the Zen workspaces matching those names are cleared
+    before import; without it every tab, folder, and group is replaced.
+    """
     try:
         profile = resolve_zen_profile(zen_profile)
     except Exception as e:
@@ -591,8 +638,14 @@ def import_arc_export(
     zen_data = read_mozilla_lz4(sessions_file)
     logger.info(f"✅ Current Zen: {len(zen_data['spaces'])} workspaces, {len(zen_data.get('tabs', []))} tabs")
 
-    # Clear existing tabs, folders, groups (fresh start)
-    reset_zen_session_state(zen_data)
+    if space_names is None:
+        # Clear existing tabs, folders, groups (fresh start)
+        reset_zen_session_state(zen_data)
+    else:
+        selected = set(space_names)
+        target_uuids = {space['uuid'] for space in zen_data['spaces'] if space.get('name') in selected}
+        removed = reset_zen_workspaces(zen_data, target_uuids)
+        logger.info(f"✅ Cleared {removed} tabs from {len(target_uuids)} existing workspaces; other workspaces kept")
 
     # Create workspaces for Arc spaces
     base_timestamp = int(datetime.now().timestamp() * 1000)

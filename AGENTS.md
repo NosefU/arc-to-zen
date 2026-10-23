@@ -54,18 +54,23 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     workspace icons, and workspace themes.
   - Filters the synthetic `Orphaned` workspace by default unless explicitly
     disabled.
+  - `MigrationOptions.spaces` limits the migration to the named Arc spaces;
+    `list_arc_spaces()` returns the names in the same form the export uses.
+  - Refuses to write a Zen profile whose lock file is held by a running Zen.
 
 - `src/arc2zen/cli.py`
   - Unified CLI with switches for profile selection, nuke mode, nuke-only mode,
-    and optional migration elements.
+    space selection (`--space`, `--list-spaces`), and optional migration elements.
 
 - `src/arc2zen/desktop.py`
   - PySide6 GUI wrapper around the shared migration orchestrator.
-  - Lets users pick Arc/Zen profiles, optional migration steps, and nuke mode.
+  - Lets users pick Arc/Zen profiles, Arc spaces, optional migration steps, and
+    nuke mode.
   - Offers runtime options for skipping `Orphaned`, creating backups, and
     closing Zen automatically.
-  - Confirms pending parameters, closes Zen before running, then streams
-    migration progress into the UI.
+  - Confirms pending parameters, closes only the Zen running the target profile
+    (found by its `.parentlock` / `parent.lock`), then streams migration
+    progress into the UI.
   - Uses a temporary export file so GUI runs do not leave `arc_pinned_tabs_export.json`.
 
 - Root `cli.py` and `desktop.py`
@@ -102,6 +107,8 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
   - Also syncs `sessionstore.jsonlz4` and `sessionstore-backups/recovery.jsonlz4`
     so temporary/unpinned Arc tabs reopen as normal Zen tabs.
   - Preserves top-level pinned shortcuts instead of creating synthetic folders.
+  - With selected spaces, clears only the matching Zen workspaces
+    (`reset_zen_workspaces`) instead of every tab, folder, and group.
   - Creates hidden empty anchor tabs for folder-only parent folders so nested
     folder hierarchy survives in Zen.
 

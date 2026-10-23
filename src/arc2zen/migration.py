@@ -11,6 +11,7 @@ from typing import Callable, Iterable
 from .extract import ArcPinnedTabExtractor
 from .favicons import migrate_favicons
 from .folder_states import sync_folder_states
+from .profile_paths import is_zen_profile_in_use, resolve_zen_profile
 from .sessions import import_arc_export
 from .workspace_icons import sync_workspace_icons
 from .workspace_themes import sync_workspace_themes
@@ -36,6 +37,8 @@ class MigrationOptions:
     skip_orphaned: bool = True
     create_backups: bool = True
     auto_close_zen: bool = True
+    # Arc space names to migrate; None migrates every space.
+    spaces: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -72,11 +75,56 @@ def is_orphaned_space(space) -> bool:
     return space.space_id == "orphaned-essential-tabs" or space.space_name == "Orphaned"
 
 
+def list_arc_spaces(arc_profile: str | Path | None = None, include_orphaned: bool = False) -> list[str]:
+    """Return Arc space names in sidebar order, as the migration would see them."""
+    extract_logger = logging.getLogger(ArcPinnedTabExtractor.__module__)
+    old_level = extract_logger.level
+    extract_logger.setLevel(logging.WARNING)
+    try:
+        extractor = ArcPinnedTabExtractor(arc_profile)
+        arc_spaces = extractor.extract_pinned_tabs(include_orphaned=include_orphaned)
+    finally:
+        extract_logger.setLevel(old_level)
+
+    names = []
+    for space in arc_spaces:
+        if not include_orphaned and is_orphaned_space(space):
+            continue
+        if space.space_name not in names:
+            names.append(space.space_name)
+    return names
+
+
+def filter_arc_spaces(arc_spaces: list, spaces: Iterable[str] | None, emit_line: LineCallback | None = None) -> list:
+    """Keep only the Arc spaces whose names were selected."""
+    if spaces is None:
+        return arc_spaces
+
+    selected = set(spaces)
+    available = [space.space_name for space in arc_spaces]
+    unknown = sorted(selected - set(available))
+    if unknown:
+        raise RuntimeError(
+            f"Unknown Arc spaces: {', '.join(unknown)}. Available: {', '.join(available)}"
+        )
+
+    skipped = [space for space in arc_spaces if space.space_name not in selected]
+    if skipped:
+        skipped_tabs = sum(len(space.pinned_tabs) for space in skipped)
+        _report(
+            emit_line,
+            f"Skipped {len(skipped)} unselected spaces ({skipped_tabs} tabs): "
+            + ", ".join(space.space_name for space in skipped),
+        )
+    return [space for space in arc_spaces if space.space_name in selected]
+
+
 def extract_arc_data(
     arc_profile: str | Path | None,
     export_file: str | Path,
     emit_line: LineCallback | None = None,
     skip_orphaned: bool = True,
+    spaces: Iterable[str] | None = None,
 ) -> dict:
     """Extract Arc sidebar data and write the intermediate JSON export."""
     export_path = Path(export_file).expanduser()
@@ -95,6 +143,10 @@ def extract_arc_data(
             _report(emit_line, f'Skipped "Orphaned" workspace ({skipped_tabs} tabs)')
         if not arc_spaces:
             raise RuntimeError('Only the "Orphaned" Arc workspace was found, and skipping it is enabled.')
+
+    arc_spaces = filter_arc_spaces(arc_spaces, spaces, emit_line)
+    if not arc_spaces:
+        raise RuntimeError("No Arc spaces selected to migrate.")
 
     if not extractor.export_to_json(arc_spaces, export_path):
         raise RuntimeError("Failed to write Arc export.")
@@ -120,6 +172,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     options.arc_profile,
                     export_file,
                     skip_orphaned=options.skip_orphaned,
+                    spaces=options.spaces,
                 )
             ),
         ),
@@ -130,6 +183,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 arc_export_file=export_file,
                 nuke=options.nuke,
                 create_backups=options.create_backups,
+                space_names=options.spaces,
             ),
         ),
     ]
@@ -155,6 +209,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     create_backups=options.create_backups,
+                    space_names=options.spaces,
                 ),
             ),
         ),
@@ -166,6 +221,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     create_backups=options.create_backups,
+                    space_names=options.spaces,
                 ),
             ),
         ),
@@ -177,12 +233,20 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     create_backups=options.create_backups,
+                    space_names=options.spaces,
                 ),
             ),
         ),
     )
     steps.extend(step for enabled, step in optional_steps if enabled)
     return steps
+
+
+def ensure_zen_profile_free(zen_profile: str | Path | None) -> None:
+    """Refuse to write a Zen profile that a running Zen has open."""
+    profile = resolve_zen_profile(zen_profile)
+    if is_zen_profile_in_use(profile):
+        raise RuntimeError(f"Zen is running with this profile. Close it and try again: {profile}")
 
 
 def run_migration(
@@ -206,6 +270,7 @@ def _run_migration_with_export(
     emit_line: LineCallback | None,
     on_step: StepCallback | None,
 ) -> bool:
+    ensure_zen_profile_free(options.zen_profile)
     steps = migration_steps(options, export_file)
     handler = CallbackLogHandler(emit_line) if emit_line else None
     root_logger = logging.getLogger()
@@ -233,6 +298,7 @@ def _run_migration_with_export(
 
 def nuke_zen_profile_only(zen_profile: str | Path | None = None, create_backups: bool = True) -> bool:
     """Clear the target Zen profile without importing Arc data."""
+    ensure_zen_profile_free(zen_profile)
     if not import_arc_export(zen_profile=zen_profile, nuke=True, nuke_only=True, create_backups=create_backups):
         raise RuntimeError("Zen profile cleanup failed")
     return True

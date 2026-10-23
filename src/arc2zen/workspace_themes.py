@@ -224,10 +224,14 @@ def sync_workspace_themes(
     arc_profile: str | Path | None = None,
     zen_profile: str | Path | None = None,
     create_backups: bool = True,
+    space_names: Iterable[str] | None = None,
 ) -> bool:
     """Sync Arc workspace themes into Zen workspaces."""
     profile = resolve_zen_profile(zen_profile)
     themes = arc_workspace_themes(arc_profile)
+    if space_names is not None:
+        selected = set(space_names)
+        themes = {key: value for key, value in themes.items() if key in selected}
     logger.info(f"Loaded {len(themes)} Arc workspace themes")
     for name, theme in themes.items():
         colors = [color["c"] for color in theme["gradientColors"]]

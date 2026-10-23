@@ -191,10 +191,14 @@ def sync_folder_states(
     arc_profile: str | Path | None = None,
     zen_profile: str | Path | None = None,
     create_backups: bool = True,
+    space_names: Iterable[str] | None = None,
 ) -> bool:
     """Sync Arc pinned-folder expanded/collapsed state into Zen."""
     profile = resolve_zen_profile(zen_profile)
     states = arc_folder_states(arc_profile)
+    if space_names is not None:
+        selected = set(space_names)
+        states = {key: value for key, value in states.items() if key[0] in selected}
     expanded = sum(1 for value in states.values() if value)
     logger.info(f"Loaded Arc states for {len(states)} pinned folders: {expanded} expanded, {len(states) - expanded} collapsed")
 

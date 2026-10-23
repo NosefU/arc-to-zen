@@ -282,3 +282,43 @@ def zen_session_files(profile: str | Path) -> list[Path]:
         profile_path / "sessionstore.jsonlz4",
         profile_path / "sessionstore-backups" / "recovery.jsonlz4",
     ]
+
+
+# Files Zen holds open while a profile is running.
+ZEN_PROFILE_LOCK_FILES = (".parentlock", "parent.lock")
+
+
+def zen_profile_lock_files(profile: str | Path) -> list[Path]:
+    profile_path = Path(profile).expanduser()
+    return [profile_path / name for name in ZEN_PROFILE_LOCK_FILES]
+
+
+def is_zen_profile_in_use(profile: str | Path) -> bool:
+    """Return True when a running Zen holds the profile lock."""
+    for lock_file in zen_profile_lock_files(profile):
+        if not lock_file.exists():
+            continue
+        if sys.platform == "win32":
+            # Zen opens parent.lock without sharing, so a second open fails.
+            try:
+                with open(lock_file, "rb"):
+                    pass
+            except PermissionError:
+                return True
+            continue
+
+        import fcntl
+
+        try:
+            fd = os.open(lock_file, os.O_RDWR)
+        except OSError:
+            continue
+        try:
+            fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            return True
+        else:
+            fcntl.lockf(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+    return False

@@ -7,7 +7,7 @@ import logging
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, Optional
 
 from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
 from .profile_paths import arc_json_path
@@ -107,10 +107,14 @@ def sync_workspace_icons(
     arc_profile: str | Path | None = None,
     zen_profile: str | Path | None = None,
     create_backups: bool = True,
+    space_names: Iterable[str] | None = None,
 ) -> bool:
     """Sync Arc space icons into Zen workspaces."""
     profile = resolve_zen_profile(zen_profile)
     icons = arc_workspace_icons(arc_profile)
+    if space_names is not None:
+        selected = set(space_names)
+        icons = {key: value for key, value in icons.items() if key in selected}
     logger.info(f"Loaded {len(icons)} Arc workspace icons")
     for name, icon in icons.items():
         logger.info(f"   {name}: {icon}")

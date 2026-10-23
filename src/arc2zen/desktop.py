@@ -27,6 +27,8 @@ try:
         QFrame,
         QHBoxLayout,
         QLabel,
+        QListWidget,
+        QListWidgetItem,
         QMainWindow,
         QMessageBox,
         QPushButton,
@@ -40,8 +42,15 @@ except ImportError as exc:
     print('Install dependencies with: pip install -e ".[desktop]"')
     raise
 
-from .migration import MigrationOptions, run_migration
-from .profile_paths import discover_arc_profiles, discover_zen_profiles, is_arc_profile, resolve_zen_profile
+from .migration import MigrationOptions, list_arc_spaces, run_migration
+from .profile_paths import (
+    discover_arc_profiles,
+    discover_zen_profiles,
+    is_arc_profile,
+    is_zen_profile_in_use,
+    resolve_zen_profile,
+    zen_profile_lock_files,
+)
 
 
 APP_STYLESHEET = """
@@ -88,6 +97,7 @@ QLabel {
 
 QComboBox,
 QLineEdit,
+QListWidget,
 QTextEdit {
     background: #ffffff;
     border: 1px solid #cfd5df;
@@ -100,6 +110,7 @@ QTextEdit {
 
 QComboBox:focus,
 QLineEdit:focus,
+QListWidget:focus,
 QTextEdit:focus {
     border-color: #3b82f6;
 }
@@ -381,6 +392,27 @@ def zen_processes() -> list[psutil.Process]:
     return processes
 
 
+def zen_processes_using_profile(profile: str | Path) -> list[psutil.Process]:
+    """Return only the Zen processes running the given profile."""
+    profile_path = Path(profile).expanduser().resolve()
+    lock_files = {str(path.resolve()) for path in zen_profile_lock_files(profile_path)}
+    matches = []
+    for process in zen_processes():
+        try:
+            open_paths = {str(Path(item.path).resolve()) for item in process.open_files()}
+            if open_paths & lock_files:
+                matches.append(process)
+                continue
+            cmdline = process.cmdline()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+        for index, arg in enumerate(cmdline[:-1]):
+            if arg.lstrip("-") == "profile" and Path(cmdline[index + 1]).expanduser().resolve() == profile_path:
+                matches.append(process)
+                break
+    return matches
+
+
 def terminate_zen_processes(processes: list[psutil.Process]) -> list[psutil.Process]:
     for process in processes:
         try:
@@ -434,6 +466,15 @@ class MainWindow(QMainWindow):
         self.arc_combo = self._profile_combo(discover_arc_profiles())
         self.zen_combo = self._profile_combo(discover_zen_profiles())
 
+        self.spaces_list = QListWidget()
+        self.spaces_list.setMaximumHeight(140)
+        self.spaces_hint = QLabel()
+        self.spaces_hint.setWordWrap(True)
+        self.spaces_all_button = QPushButton("All")
+        self.spaces_all_button.clicked.connect(lambda: self.set_all_spaces_checked(True))
+        self.spaces_none_button = QPushButton("None")
+        self.spaces_none_button.clicked.connect(lambda: self.set_all_spaces_checked(False))
+
         self.core_check = QCheckBox("Workspaces, pinned tabs, temporary tabs, folders, and Essentials")
         self.core_check.setChecked(True)
         self.core_check.setEnabled(False)
@@ -468,6 +509,10 @@ class MainWindow(QMainWindow):
 
         self._build_ui()
 
+        self.arc_combo.currentTextChanged.connect(self.reload_spaces)
+        self.skip_orphaned_check.toggled.connect(self.reload_spaces)
+        self.reload_spaces()
+
     def _profile_combo(self, profiles: list[Path]) -> QComboBox:
         combo = QComboBox()
         combo.setEditable(True)
@@ -486,6 +531,16 @@ class MainWindow(QMainWindow):
         profile_body.addWidget(self._path_row("Source: Arc data folder", self.arc_combo, self.browse_arc))
         profile_body.addWidget(self._path_row("Target: Zen profile", self.zen_combo, self.browse_zen))
         layout.addWidget(profile_card)
+
+        spaces_card, spaces_body = self._card("Spaces")
+        spaces_buttons = QHBoxLayout()
+        spaces_buttons.setContentsMargins(0, 0, 0, 0)
+        spaces_buttons.addWidget(self.spaces_hint, stretch=1)
+        spaces_buttons.addWidget(self.spaces_all_button)
+        spaces_buttons.addWidget(self.spaces_none_button)
+        spaces_body.addLayout(spaces_buttons)
+        spaces_body.addWidget(self.spaces_list)
+        layout.addWidget(spaces_card)
 
         options_row = QWidget()
         options_row_layout = QHBoxLayout(options_row)
@@ -566,6 +621,51 @@ class MainWindow(QMainWindow):
         layout.addWidget(browse_button)
         return row
 
+    def reload_spaces(self, *_):
+        """Fill the space list from the selected Arc folder, keeping unchecked spaces unchecked."""
+        unchecked = {
+            self.spaces_list.item(row).text()
+            for row in range(self.spaces_list.count())
+            if self.spaces_list.item(row).checkState() != Qt.Checked
+        }
+        self.spaces_list.clear()
+
+        arc_profile = Path(self.arc_combo.currentText()).expanduser()
+        names = []
+        if is_arc_profile(arc_profile):
+            try:
+                names = list_arc_spaces(arc_profile, include_orphaned=not self.skip_orphaned_check.isChecked())
+            except Exception as exc:
+                self.spaces_hint.setText(f"Could not read Arc spaces: {exc}")
+        for name in names:
+            item = QListWidgetItem(name)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Unchecked if name in unchecked else Qt.Checked)
+            self.spaces_list.addItem(item)
+
+        if names:
+            self.spaces_hint.setText("Unchecked spaces are skipped; their Zen workspaces stay as they are.")
+        elif not self.spaces_hint.text().startswith("Could not"):
+            self.spaces_hint.setText("Choose an Arc data folder to list its spaces.")
+        has_spaces = bool(names)
+        self.spaces_all_button.setEnabled(has_spaces)
+        self.spaces_none_button.setEnabled(has_spaces)
+
+    def set_all_spaces_checked(self, checked: bool):
+        state = Qt.Checked if checked else Qt.Unchecked
+        for row in range(self.spaces_list.count()):
+            self.spaces_list.item(row).setCheckState(state)
+
+    def selected_spaces(self) -> tuple[str, ...] | None:
+        """Return checked space names, or None when every listed space is checked."""
+        items = [self.spaces_list.item(row) for row in range(self.spaces_list.count())]
+        checked = tuple(item.text() for item in items if item.checkState() == Qt.Checked)
+        if len(checked) == len(items):
+            return None
+        if not checked:
+            raise ValueError("Select at least one Arc space to migrate.")
+        return checked
+
     def browse_arc(self):
         selected = QFileDialog.getExistingDirectory(self, "Select Arc data folder")
         if selected:
@@ -596,13 +696,14 @@ class MainWindow(QMainWindow):
             skip_orphaned=self.skip_orphaned_check.isChecked(),
             create_backups=self.backups_check.isChecked(),
             auto_close_zen=self.auto_close_zen_check.isChecked(),
+            spaces=self.selected_spaces(),
         )
 
     def start_migration(self):
         try:
             config = self.selected_config()
         except Exception as exc:
-            QMessageBox.critical(self, "Invalid profile selection", str(exc))
+            QMessageBox.critical(self, "Invalid selection", str(exc))
             return
 
         if not self.confirm_operation(config):
@@ -627,7 +728,12 @@ class MainWindow(QMainWindow):
         response = QMessageBox(
             icon,
             "Confirm migration",
-            "Are you sure you want to start the migration?",
+            "Are you sure you want to start the migration?\n\n"
+            + (
+                "Spaces: all"
+                if config.spaces is None
+                else "Spaces: " + ", ".join(config.spaces) + "\nOther Zen workspaces are kept."
+            ),
             QMessageBox.Cancel | QMessageBox.Ok,
             self,
         )
@@ -635,8 +741,16 @@ class MainWindow(QMainWindow):
         return response.exec() == QMessageBox.Ok
 
     def ensure_zen_closed(self, config: MigrationOptions) -> bool:
-        processes = zen_processes()
+        # Only the Zen running the target profile has to close; other Zen windows keep running.
+        processes = zen_processes_using_profile(config.zen_profile)
         if not processes:
+            if is_zen_profile_in_use(config.zen_profile):
+                QMessageBox.critical(
+                    self,
+                    "Zen profile is in use",
+                    f"The Zen profile is locked by a running process:\n{config.zen_profile}\n\nClose it and start the migration again.",
+                )
+                return False
             return True
 
         names = ", ".join(f"{process.info.get('name')} ({process.pid})" for process in processes)
