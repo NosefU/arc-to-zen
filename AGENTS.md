@@ -185,6 +185,17 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     (`contains` / `equal-to` / `regex`, `openIn` = workspace uuid). Rule ids are
     reused so re-runs update routes in place.
 
+- `src/arc2zen/arc_look_mod.py`
+  - Installs the bundled mod from `src/arc2zen/mods/arc-look` into
+    `chrome/zen-themes/<id>`, registers it in `zen-themes.json`, regenerates
+    `chrome/zen-themes.css` (Zen does not rebuild it at startup), and fills in
+    the mod's default prefs. Packaged via `package-data` and PyInstaller
+    `--add-data`.
+
+- `src/arc2zen/zen_settings.py`, `src/arc2zen/zen_prefs.py`
+  - Map Arc's sidebar mode and top bar setting to Zen compact mode and toolbar
+    layout, add the drag-to-split thresholds, and write them to `prefs.js`.
+
 - `src/arc2zen/tab_repair.py`
   - Replaces tab URLs with hosts that fail IDNA round-trip (Zen throws
     `NS_ERROR_MALFORMED_URI` and its menus stop working) with `about:blank` in

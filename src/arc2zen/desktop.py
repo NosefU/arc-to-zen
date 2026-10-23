@@ -500,6 +500,18 @@ class MainWindow(QMainWindow):
         self.link_routing_check = QCheckBox("Air Traffic Control rules as Space Routing")
         self.link_routing_check.setChecked(True)
         self.link_routing_check.setToolTip("Rules that open matching links in a specific Arc space become Zen Space Routing routes to that workspace.")
+        self.arc_look_mod_check = QCheckBox("Arc Look mod (compact top bar, Arc-like address bar and Peek)")
+        self.arc_look_mod_check.setChecked(True)
+        self.arc_look_mod_check.setToolTip("Installs the bundled Zen mod and makes the address bar always float, as in Arc; each part of the mod can be switched off in Zen's mod settings.")
+        self.sidebar_mode_check = QCheckBox("Sidebar hidden or shown, as in Arc")
+        self.sidebar_mode_check.setChecked(True)
+        self.sidebar_mode_check.setToolTip("A hidden Arc sidebar turns on Zen compact mode, where the sidebar shows on hover.")
+        self.toolbar_layout_check = QCheckBox("Single or multiple toolbars, as in Arc")
+        self.toolbar_layout_check.setChecked(True)
+        self.toolbar_layout_check.setToolTip("Arc's URL in the top bar becomes Zen's multiple toolbars; otherwise Zen uses a single toolbar.")
+        self.split_drag_check = QCheckBox("Easier drag-to-split of tabs")
+        self.split_drag_check.setChecked(True)
+        self.split_drag_check.setToolTip("Dropping a tab onto another splits the view over 70% of the tab height after 250 ms (Zen default: 20%, 500 ms).")
         self.containers_check = QCheckBox("Arc profiles as Zen containers")
         self.containers_check.setChecked(True)
         self.containers_check.setToolTip("Creates a Zen container per Arc profile and opens each migrated workspace in it.")
@@ -590,6 +602,15 @@ class MainWindow(QMainWindow):
         ):
             options_layout.addWidget(checkbox)
 
+        zen_card, zen_layout = self._card("Zen settings")
+        for checkbox in (
+            self.arc_look_mod_check,
+            self.sidebar_mode_check,
+            self.toolbar_layout_check,
+            self.split_drag_check,
+        ):
+            zen_layout.addWidget(checkbox)
+
         settings_card, settings_layout = self._card("Options")
         for checkbox in (
             self.skip_orphaned_check,
@@ -598,8 +619,15 @@ class MainWindow(QMainWindow):
         ):
             settings_layout.addWidget(checkbox)
 
+        side_column = QWidget()
+        side_layout = QVBoxLayout(side_column)
+        side_layout.setContentsMargins(0, 0, 0, 0)
+        side_layout.setSpacing(14)
+        side_layout.addWidget(zen_card)
+        side_layout.addWidget(settings_card)
+
         options_row_layout.addWidget(options_card, stretch=1)
-        options_row_layout.addWidget(settings_card, stretch=1)
+        options_row_layout.addWidget(side_column, stretch=1)
         layout.addWidget(options_row)
 
         danger_card, danger_layout = self._card("Danger Zone", danger=True)
@@ -730,6 +758,10 @@ class MainWindow(QMainWindow):
             containers=self.containers_check.isChecked(),
             boosts=self.boosts_check.isChecked(),
             link_routing=self.link_routing_check.isChecked(),
+            arc_look_mod=self.arc_look_mod_check.isChecked(),
+            sidebar_mode=self.sidebar_mode_check.isChecked(),
+            toolbar_layout=self.toolbar_layout_check.isChecked(),
+            split_drag=self.split_drag_check.isChecked(),
             cookies=self.cookies_check.isChecked(),
             passwords=self.passwords_check.isChecked(),
             local_storage=self.local_storage_check.isChecked(),

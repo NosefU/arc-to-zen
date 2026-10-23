@@ -1,0 +1,52 @@
+[
+  {
+    "property": "mod.arclook.container-line-left",
+    "label": "Полоска контейнера у вкладок — слева",
+    "type": "checkbox",
+    "defaultValue": true
+  },
+  {
+    "property": "mod.arclook.hide-essential-container-line",
+    "label": "Без полоски контейнера у важных вкладок",
+    "type": "checkbox",
+    "defaultValue": true
+  },
+  {
+    "property": "mod.arclook.compact-toolbar",
+    "label": "Компактная верхняя панель (32px)",
+    "type": "checkbox",
+    "defaultValue": true
+  },
+  {
+    "property": "mod.arclook.urlbar",
+    "label": "Поле адреса как в Arc: по ширине адреса, по центру, без фона",
+    "type": "checkbox",
+    "defaultValue": true
+  },
+  {
+    "property": "mod.arclook.urlbar-max-width",
+    "label": "          максимальная ширина поля адреса",
+    "type": "string",
+    "defaultValue": "640px",
+    "placeholder": "напр. 640px или 50vw"
+  },
+  {
+    "property": "mod.arclook.glance-light-buttons",
+    "label": "Светлые кнопки Peek (Glance) на светлой теме",
+    "type": "checkbox",
+    "defaultValue": true
+  },
+  {
+    "property": "mod.arclook.glance-icon-color",
+    "label": "          цвет значков Peek (пусто — синий как в Arc)",
+    "type": "string",
+    "defaultValue": "",
+    "placeholder": "напр. #2b25ff или red"
+  },
+  {
+    "property": "mod.arclook.glance-rounded",
+    "label": "Окно Peek со скруглёнными углами и отступом снизу",
+    "type": "checkbox",
+    "defaultValue": true
+  }
+]

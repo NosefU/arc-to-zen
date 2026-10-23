@@ -14,6 +14,8 @@ from .containers import sync_containers
 from .cookies import migrate_cookies
 from .link_routing import migrate_link_routing
 from .local_storage import migrate_local_storage
+from .arc_look_mod import install_arc_look_mod
+from .zen_settings import apply_zen_settings
 from .passwords import migrate_passwords
 from .extract import ArcPinnedTabExtractor
 from .favicons import migrate_favicons
@@ -50,6 +52,10 @@ class MigrationOptions:
     repair_tabs: bool = True
     boosts: bool = True
     link_routing: bool = True
+    arc_look_mod: bool = True
+    sidebar_mode: bool = True
+    toolbar_layout: bool = True
+    split_drag: bool = True
     skip_orphaned: bool = True
     create_backups: bool = True
     auto_close_zen: bool = True
@@ -297,6 +303,30 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     create_backups=options.create_backups,
+                ),
+            ),
+        ),
+        (
+            options.arc_look_mod,
+            MigrationStep(
+                "Install the Arc Look mod",
+                lambda: install_arc_look_mod(
+                    zen_profile=options.zen_profile,
+                    create_backups=options.create_backups,
+                ),
+            ),
+        ),
+        (
+            options.sidebar_mode or options.toolbar_layout or options.split_drag,
+            MigrationStep(
+                "Apply Zen layout settings",
+                lambda: apply_zen_settings(
+                    arc_profile=options.arc_profile,
+                    zen_profile=options.zen_profile,
+                    create_backups=options.create_backups,
+                    sidebar=options.sidebar_mode,
+                    toolbar=options.toolbar_layout,
+                    split_drag=options.split_drag,
                 ),
             ),
         ),

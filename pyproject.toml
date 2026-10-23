@@ -32,3 +32,6 @@ arc2zen-desktop = "arc2zen.desktop:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+arc2zen = ["mods/*/*"]

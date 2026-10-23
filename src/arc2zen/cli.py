@@ -63,6 +63,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Leave Zen's colors on spaces that have no Arc theme instead of using Arc's default gradient.",
     )
+    parser.add_argument("--no-arc-look-mod", action="store_true", help="Do not install the bundled Arc Look Zen mod.")
+    parser.add_argument(
+        "--no-sidebar-mode",
+        action="store_true",
+        help="Do not turn Arc's hidden/shown sidebar into Zen compact mode on/off.",
+    )
+    parser.add_argument(
+        "--no-toolbar-layout",
+        action="store_true",
+        help="Do not pick Zen's single or multiple toolbars from Arc's top bar setting.",
+    )
+    parser.add_argument(
+        "--no-split-drag",
+        action="store_true",
+        help="Keep Zen's default thresholds for dragging a tab onto another to split the view.",
+    )
     parser.add_argument(
         "--no-link-routing",
         action="store_true",
@@ -143,6 +159,10 @@ def main() -> int:
         containers=not args.no_containers,
         boosts=not args.no_boosts,
         link_routing=not args.no_link_routing,
+        arc_look_mod=not args.no_arc_look_mod,
+        sidebar_mode=not args.no_sidebar_mode,
+        toolbar_layout=not args.no_toolbar_layout,
+        split_drag=not args.no_split_drag,
         cookies=args.cookies,
         passwords=args.passwords,
         local_storage=args.local_storage,

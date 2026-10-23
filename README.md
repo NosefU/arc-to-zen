@@ -31,6 +31,9 @@ Pick the archive for your OS:
 - 🔑 optionally, saved passwords of those profiles (macOS)
 - 🚀 Arc boosts as Zen boosts (CSS per site)
 - 🛫 Air Traffic Control rules as Zen Space Routing
+- 🎛️ Zen settings: the bundled Arc Look mod, compact mode when Arc's sidebar
+  is hidden, single or multiple toolbars from Arc's top bar, easier tab
+  drag-to-split
 - 🗄️ optionally, sites' localStorage of those profiles, in their containers
 
 ## GUI
@@ -121,6 +124,8 @@ Useful switches:
   `ww.xn--15-.example.org`) makes Zen's menus stop responding
 - `--no-boosts` skips Arc boosts
 - `--no-link-routing` skips Air Traffic Control rules
+- `--no-arc-look-mod`, `--no-sidebar-mode`, `--no-toolbar-layout`,
+  `--no-split-drag` skip the Zen settings below
 - `--no-containers` keeps workspaces and tabs out of per-profile containers
 - `--cookies` copies the cookies of the migrated spaces' Arc profiles into
   their containers
@@ -195,6 +200,24 @@ in the most recent space need no route, since that is Zen's default. Rules with
 conditions Zen cannot express, such as the source app, and rules sending links
 to Little Arc are skipped and counted in the log, as are rules for spaces that
 are not migrated.
+
+## Zen Settings
+
+- **Arc Look mod** (`src/arc2zen/mods/arc-look`): container line on the left of
+  tabs and none on Essentials, a 32 px top bar, an address bar sized to the URL
+  (up to 640 px) without a background, light Peek buttons, and a rounded Peek
+  window. The migration installs it, rebuilds Zen's mod stylesheet, sets the
+  mod's default settings, and switches Zen's address bar to "always floating"
+  (`zen.urlbar.behavior = float`), as in Arc; each part of the mod can be
+  switched off in Zen's mod settings.
+- **Sidebar**: a hidden Arc sidebar (`sidebarMode = noChrome` in
+  `StorableWindows.json`) turns on Zen compact mode at startup, where the
+  sidebar shows on hover; a shown sidebar turns it off.
+- **Toolbars**: Arc's URL in the top bar (`topBarURLEnabled` in
+  `~/Library/Preferences/company.thebrowser.Browser.plist`) selects Zen's
+  multiple toolbars; otherwise Zen uses a single toolbar.
+- **Drag-to-split**: dropping a tab onto another splits the view over 70% of
+  the tab height after 250 ms instead of Zen's 20% and 500 ms.
 
 ## Profiles
 

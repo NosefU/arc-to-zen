@@ -72,6 +72,9 @@ def run_pyinstaller(label: str) -> Path:
         str(icon_path()),
         "--add-data",
         f"{ASSETS_DIR / 'app-icon.png'}{os.pathsep}assets",
+        # The bundled Arc Look mod, read next to arc2zen/arc_look_mod.py
+        "--add-data",
+        f"{REPO_ROOT / 'src' / 'arc2zen' / 'mods'}{os.pathsep}arc2zen/mods",
         "--distpath",
         str(dist_dir),
         "--workpath",
