@@ -63,12 +63,28 @@ class ArcSpace:
         return f"ArcSpace(name='{self.space_name}'{icon_str}, tabs={len(self.pinned_tabs)}, folders={len(self.folders)})"
 
 
+ARC_DEFAULT_PERSONAL_SPACE_ID = "thebrowser.company.defaultPersonalSpaceID"
+
+
 def arc_space_name(space_id: str, space_value: Dict) -> str:
     """Name an Arc space the way every migration step matches it in Zen.
 
-    Arc leaves the title empty for its built-in personal space.
+    Arc leaves the title empty for its built-in personal space and shows it as
+    "Personal".
     """
-    return space_value.get('title') or f'Space {space_id}'
+    title = space_value.get('title')
+    if title:
+        return title
+    if space_id == ARC_DEFAULT_PERSONAL_SPACE_ID:
+        return "Personal"
+    return f'Space {space_id}'
+
+
+def arc_space_legacy_names(space_id: str, space_name: str) -> List[str]:
+    """Names older versions gave this space in Zen, so re-runs can find that workspace."""
+    if space_id == ARC_DEFAULT_PERSONAL_SPACE_ID and space_name == "Personal":
+        return [f'Space {space_id}']
+    return []
 
 
 class ArcPinnedTabExtractor:

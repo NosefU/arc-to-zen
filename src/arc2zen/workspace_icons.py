@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
 from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
+from .extract import arc_space_name
 from .profile_paths import arc_json_path
 
 
@@ -51,7 +52,7 @@ def arc_workspace_icons(arc_profile: str | Path | None = None) -> Dict[str, str]
             continue
 
         value = space_models[i + 1].get("value", {})
-        name = value.get("title")
+        name = arc_space_name(space_id, value)
         icon = zen_icon_from_arc_icon_type(value.get("customInfo", {}).get("iconType"))
         if name and icon:
             icons[name] = icon

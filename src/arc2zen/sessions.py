@@ -18,6 +18,7 @@ from datetime import datetime
 import shutil
 import copy
 
+from .extract import arc_space_legacy_names
 from .profile_paths import resolve_zen_profile as resolve_zen_profile_path
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -422,6 +423,27 @@ def reset_zen_session_state(data: Dict[str, Any], clear_window_history: bool = F
     data["splitViewData"] = []
 
 
+def rename_legacy_workspaces(zen_data: Dict[str, Any], arc_spaces: List[Dict[str, Any]]) -> int:
+    """Rename Zen workspaces created under an older Arc space name to the current one.
+
+    Later steps match workspaces by name, so the rename lets a re-run reuse the
+    workspace instead of creating a duplicate next to it.
+    """
+    renamed = 0
+    for arc_space in arc_spaces:
+        name = arc_space['space_name']
+        if any(space.get('name') == name for space in zen_data['spaces']):
+            continue
+        for legacy_name in arc_space_legacy_names(arc_space.get('space_id', ''), name):
+            legacy = next((space for space in zen_data['spaces'] if space.get('name') == legacy_name), None)
+            if legacy:
+                legacy['name'] = name
+                renamed += 1
+                logger.info(f"📁 Renamed workspace: {legacy_name} -> {name}")
+                break
+    return renamed
+
+
 def reset_zen_workspaces(data: Dict[str, Any], workspace_uuids: set[str]) -> int:
     """Clear tabs, folders, groups, and split views of the given Zen workspaces only.
 
@@ -637,6 +659,8 @@ def import_arc_export(
     # Read current Zen sessions
     zen_data = read_mozilla_lz4(sessions_file)
     logger.info(f"✅ Current Zen: {len(zen_data['spaces'])} workspaces, {len(zen_data.get('tabs', []))} tabs")
+
+    rename_legacy_workspaces(zen_data, arc_data['spaces'])
 
     if space_names is None:
         # Clear existing tabs, folders, groups (fresh start)

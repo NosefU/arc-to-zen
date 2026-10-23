@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
 from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
+from .extract import arc_space_name
 from .profile_paths import arc_json_path
 
 
@@ -154,9 +155,9 @@ def arc_workspace_themes(arc_profile: str | Path | None = None) -> Dict[str, Dic
     space_models = sidebar.get("firebaseSyncState", {}).get("syncData", {}).get("spaceModels", [])
     themes: Dict[str, Dict[str, Any]] = {}
 
-    for _, model in alternating_pairs(space_models):
+    for space_id, model in alternating_pairs(space_models):
         value = model.get("value", {}) if isinstance(model, dict) else {}
-        name = value.get("title")
+        name = arc_space_name(space_id, value)
         window_theme = value.get("customInfo", {}).get("windowTheme")
         if not name or not isinstance(window_theme, dict):
             continue

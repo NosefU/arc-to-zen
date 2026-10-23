@@ -39,6 +39,10 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
   - Exports Arc spaces, pinned tabs, temporary/unpinned tabs, essential tabs,
     folders, icons, and a basic color field.
   - Writes `arc_pinned_tabs_export.json`, which is ignored by Git.
+  - `arc_space_name()` is the single source of Arc space names for every step;
+    Arc's untitled built-in personal space is named `Personal`.
+    `arc_space_legacy_names()` lists names older versions used, and the import
+    renames such Zen workspaces so re-runs reuse them.
 
 - `src/arc2zen/profile_paths.py`
   - Discovers and validates Arc/Zen profile paths across supported platforms.
