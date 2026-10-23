@@ -158,6 +158,11 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     `user.js`, restored afterwards), checks `ProfD` is that profile, runs a
     chrome-context script, and quits.
 
+- `src/arc2zen/arc_urls.py`
+  - Maps Arc internal pages (`arc://`, `chrome://`) to Zen `about:` pages and
+    drops tabs Zen cannot open (`chrome-extension://`, `blob:`, unmapped
+    internal pages). Applied in `migration.extract_arc_data` before export.
+
 - `src/arc2zen/tab_repair.py`
   - Replaces tab URLs with hosts that fail IDNA round-trip (Zen throws
     `NS_ERROR_MALFORMED_URI` and its menus stop working) with `about:blank` in

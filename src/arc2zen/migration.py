@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable
 
+from .arc_urls import convert_arc_url
 from .containers import sync_containers
 from .cookies import migrate_cookies
 from .passwords import migrate_passwords
@@ -127,6 +128,29 @@ def filter_arc_spaces(arc_spaces: list, spaces: Iterable[str] | None, emit_line:
     return [space for space in arc_spaces if space.space_name in selected]
 
 
+def convert_arc_only_urls(arc_spaces: list, emit_line: LineCallback | None = None) -> None:
+    """Point Arc internal pages at their Zen counterparts and drop tabs Zen cannot open."""
+    converted = 0
+    dropped = []
+    for space in arc_spaces:
+        kept = []
+        for tab in space.pinned_tabs:
+            url = convert_arc_url(tab.url)
+            if url is None:
+                dropped.append(tab.url.split("?", 1)[0])
+                continue
+            if url != tab.url:
+                tab.url = url
+                converted += 1
+            kept.append(tab)
+        space.pinned_tabs = kept
+
+    if converted:
+        _report(emit_line, f"Converted {converted} Arc internal pages to Zen pages")
+    if dropped:
+        _report(emit_line, f"Skipped {len(dropped)} tabs Zen cannot open: " + ", ".join(dropped))
+
+
 def extract_arc_data(
     arc_profile: str | Path | None,
     export_file: str | Path,
@@ -155,6 +179,8 @@ def extract_arc_data(
     arc_spaces = filter_arc_spaces(arc_spaces, spaces, emit_line)
     if not arc_spaces:
         raise RuntimeError("No Arc spaces selected to migrate.")
+
+    convert_arc_only_urls(arc_spaces, emit_line)
 
     if not extractor.export_to_json(arc_spaces, export_path):
         raise RuntimeError("Failed to write Arc export.")

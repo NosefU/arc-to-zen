@@ -103,6 +103,11 @@ Useful switches:
 - `--no-folder-states`
 - `--no-workspace-icons`
 - `--no-workspace-themes`
+- Arc internal pages open as their Zen counterparts (`arc://downloads` →
+  `about:downloads`, `arc://settings` → `about:preferences`, `arc://extensions`
+  → `about:addons`, passwords → `about:logins`). Other `arc://` pages,
+  `chrome-extension://` pages, and `blob:` URLs cannot open in Zen and are
+  skipped; the log lists them.
 - `--no-tab-repair` keeps tab URLs Zen cannot parse; by default they become
   `about:blank`, because such a tab (for example a bad punycode host like
   `ww.xn--15-.example.org`) makes Zen's menus stop responding
