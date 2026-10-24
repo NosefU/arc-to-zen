@@ -691,6 +691,8 @@ NOTE_ICON = (f"border: 1.5px solid {ACCENT}; border-radius: 10px; color: {ACCENT
              " font-family: Georgia, serif; font-size: 12px; font-weight: 700;")
 # A log line starting with this is a note of the current step
 NOTE_PREFIX = "⚠️"
+# A log line starting with this is one item the note is about; the step lists it, the notes don't
+DETAIL_PREFIX = "↳"
 
 
 class StepRow(QWidget):
@@ -856,6 +858,7 @@ class MainWindow(QMainWindow):
         self.current_step_title = ""
         self.step_notes: Dict[str, str] = {}
         self.step_infos: Dict[str, List[str]] = {}
+        self.step_details: Dict[str, List[str]] = {}
         # Backup of the Zen profile taken by the last run; deleted with the window
         self.snapshot_dir: Optional[Path] = None
         self.rollback_state = ""  # "", "running", "done" or "failed"
@@ -1564,6 +1567,7 @@ class MainWindow(QMainWindow):
         self.step_rows = {}
         self.step_notes = {}
         self.step_infos = {}
+        self.step_details = {}
         titles = [step.title for step in migration_steps(config, Path(tempfile.gettempdir()) / "arc-to-zen-plan.json")]
         for index, title in enumerate(titles):
             if index:
@@ -1633,6 +1637,8 @@ class MainWindow(QMainWindow):
             self.step_notes[self.current_step_title] = text.lstrip("❌").strip()
         elif text.startswith(NOTE_PREFIX) and self.current_step_title:
             self.step_infos.setdefault(self.current_step_title, []).append(text[len(NOTE_PREFIX):].strip())
+        elif text.startswith(DETAIL_PREFIX) and self.current_step_title:
+            self.step_details.setdefault(self.current_step_title, []).append(text[len(DETAIL_PREFIX):].strip())
 
     def update_step(self, current: int, total: int, title: str):
         for row_title, row in self.step_rows.items():
@@ -1658,7 +1664,8 @@ class MainWindow(QMainWindow):
                 row.set_state("failed", self.step_notes.get(title) or message)
                 reached = False
             elif reached and title in self.step_infos:
-                row.set_state("noted", "\n".join(self.step_infos[title]))
+                items = [f"•  {item}" for item in self.step_details.get(title, [])]
+                row.set_state("noted", "\n".join(self.step_infos[title] + items))
             elif reached and ok:
                 row.set_state("done")
 

@@ -85,7 +85,9 @@ first and can be undone with `--rollback <backup folder>`.
   - A log line starting with `⚠️` is a note of the running step: the result
     screen lists it and the step gets an "i". Use it for things the user
     should act on or know (skipped tabs, boost JavaScript, missing dictionary),
-    not for routine skips.
+    not for routine skips. Keep the note a short summary; a list behind it
+    (tabs, addresses) follows it one item per line, each starting with `↳`:
+    the step lists them, the result screen's notes don't.
   - Uses a temporary export file so GUI runs do not leave `arc_pinned_tabs_export.json`.
 
 - `src/arc2zen/snapshot.py`

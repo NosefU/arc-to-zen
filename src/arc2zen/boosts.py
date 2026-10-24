@@ -218,7 +218,10 @@ def migrate_boosts(
             with_js.append(f"{data['boostName']} ({boost['host']})")
 
     if with_js:
-        logger.info(f"⚠️ Zen boosts run no JavaScript, so it was left out of: {', '.join(with_js)}")
+        boosts = "1 boost" if len(with_js) == 1 else f"{len(with_js)} boosts"
+        logger.info(f"⚠️ Zen boosts run no JavaScript, so it was left out of {boosts}")
+        for boost in with_js:
+            logger.info(f"↳ {boost}")
     write_mozilla_lz4(store_path, store, create_backup=False)
     logger.info(f"Done. {added} boosts added, {updated} updated.")
     return True
