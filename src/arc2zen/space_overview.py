@@ -23,6 +23,8 @@ class SpaceOverview:
     folders: int
     arc_profile: Optional[str]
     container: Optional[str]
+    # The Arc profile's name as Arc shows it; None for one still on Chromium's generated name
+    profile_name: Optional[str] = None
     emoji: Optional[str] = None
     icon_name: Optional[str] = None  # Arc built-in icon, same name as Zen's selectable icon
     colors: List[str] = field(default_factory=list)  # hex, first is primary
@@ -75,6 +77,7 @@ def arc_space_overview(arc_profile: str | Path | None = None, include_orphaned: 
                 arc_profile=profile,
                 # Same rule as containers.sync_containers: the Arc profile's name, else its first space
                 container=(profile_names.get(profile) or first_space_of_profile.get(profile)) if profile else None,
+                profile_name=profile_names.get(profile) if profile else None,
                 emoji=emojis.get(space.space_name),
                 icon_name=icon_names.get(space.space_name),
                 colors=colors,

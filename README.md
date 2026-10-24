@@ -72,8 +72,9 @@ Everything is on one screen:
 - **Header**: the Arc data folder and the Zen profile are found automatically,
   with their status; click either to pick another one.
 - **Spaces** (left): pick the Arc spaces to migrate; each row shows the
-  space's icon, colors, tab and folder counts, and the container it will open
-  in.
+  space's icon, colors, tab and folder counts, and its Arc profile. As in Arc,
+  spaces stay bound to their profile: each profile becomes one Zen container
+  of the same name, and all its spaces open in it.
 - **What comes along** (right): one click on a preset, **Just tabs** (spaces,
   tabs and how they look), **Arc as it was** (also sign-ins, boosts,
   Air Traffic Control and an Arc-like Zen) or **Just the look** (no migration:

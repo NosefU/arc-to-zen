@@ -638,8 +638,11 @@ class SpaceRow(Clickable):
         self.name = name = label(space.name)
         name.setStyleSheet("font-weight: 600;")
         self.counts_text = f"{count(space.tabs, 'tab')} · {count(space.folders, 'folder')}"
-        if space.container:
-            self.counts_text += f" · {space.container} container"
+        # Spaces keep their Arc profile; its container has the profile's name unless the profile has none
+        if space.profile_name:
+            self.counts_text += f"\n{space.profile_name} profile"
+        elif space.container:
+            self.counts_text += f"\nUnnamed profile → {space.container} container"
         self.counts = label(self.counts_text, "small", wrap=True)
         self.check = QLabel()
         self.check.setFixedSize(20, 20)
@@ -1705,7 +1708,8 @@ class MainWindow(QMainWindow):
         self.spaces_note.setText(
             "Zen spaces with the same name as in Arc get its icon and colors. Nothing is added or removed."
             if look else
-            "Each space opens in a container named after its Arc profile. Unchecked spaces stay as they are in Zen.")
+            "Spaces keep their Arc profiles: each profile becomes a Zen container of the same name, and its "
+            "spaces open in it. Unchecked spaces stay as they are in Zen.")
 
         chosen = self.chosen_spaces()
         if not self.arc_ok:
