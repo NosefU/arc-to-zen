@@ -44,8 +44,7 @@ Everything is on one screen:
   with their status; click either to pick another one.
 - **Spaces** (left): pick the Arc spaces to migrate; each row shows the
   space's icon, colors, tab and folder counts, and the container it will open
-  in. Below, choose whether the spaces are **added to what's there** or
-  **replace Zen's contents** (clean rebuild: removes what Arc doesn't have).
+  in.
 - **What comes along** (right): one click on a preset, **Just tabs** (spaces,
   tabs and how they look) or **Arc as it was** (also sign-ins, boosts,
   Air Traffic Control and an Arc-like Zen), or turn single items on and off,
@@ -53,8 +52,10 @@ Everything is on one screen:
   backups, closing Zen automatically and the `Orphaned` workspace. Only the
   Zen running the target profile is closed; Zen windows of other profiles keep
   running.
-- **Footer**: what will happen in one line and the **Migrate** button; a
-  replacing migration asks for confirmation right there. During the run the
+- **Footer**: how many spaces, tabs and folders go, whether they are **added
+  to what's there** or **replace Zen's contents** (clean rebuild: removes what
+  Arc doesn't have), and the **Migrate** button; a replacing migration asks for
+  confirmation right there. During the run the
   right side shows a status per step, the reason under a failed step, and the
   full log on demand.
 

@@ -67,9 +67,9 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     space selection (`--space`, `--list-spaces`), and optional migration elements.
 
 - `src/arc2zen/desktop.py`
-  - PySide6 single window around the shared migration orchestrator: spaces and
-    the add/replace choice on the left, presets and option chips on the right,
-    a summary with the Migrate button in the footer; chips map one-to-one to
+  - PySide6 single window around the shared migration orchestrator: spaces on
+    the left, presets and option chips on the right, a summary, the add/replace
+    choice and the Migrate button in one footer row; chips map one-to-one to
     `MigrationOptions` fields (`CATEGORIES`, `SAFETY`, presets in `PRESETS`).
   - Space rows come from `space_overview.arc_space_overview()`; built-in
     Arc icons are drawn from the installed Zen's `omni.ja`

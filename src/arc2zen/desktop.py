@@ -650,20 +650,23 @@ class PresetCard(Clickable):
 
 
 class ModeCard(Clickable):
-    """A radio card for how the spaces land in Zen: added, or replacing its contents."""
+    """A compact radio card next to the Migrate button: spaces added to Zen, or replacing its contents."""
 
-    def __init__(self, title: str, hint: str, danger: bool = False):
+    def __init__(self, title: str, subtitle: str, hint: str, danger: bool = False):
         super().__init__("Mode", title)
         self.danger = danger
         self.setProperty("danger", "true" if danger else "false")
+        self.setToolTip(hint)
         self.radio = QLabel()
         self.radio.setFixedSize(18, 18)
         self.title = label(title)
+        caption = label(subtitle)
+        caption.setStyleSheet(f"color: {MUTED}; font-size: 11px;")
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(10)
-        layout.addWidget(self.radio, 0, Qt.AlignTop)
-        layout.addLayout(text_column(self.title, label(hint, "small", wrap=True)), 1)
+        layout.setContentsMargins(10, 6, 12, 6)
+        layout.setSpacing(8)
+        layout.addWidget(self.radio, 0, Qt.AlignVCenter)
+        layout.addLayout(text_column(self.title, caption))
 
     def set_checked(self, checked: bool) -> None:
         color = DANGER if self.danger else ACCENT
@@ -671,7 +674,8 @@ class ModeCard(Clickable):
             f"background: {WINDOW}; border: 5px solid {color}; border-radius: 9px;"
             if checked else f"background: transparent; border: 1.5px solid {OFF}; border-radius: 9px;"
         )
-        self.title.setStyleSheet(f"font-weight: 600; color: {DANGER if checked and self.danger else TEXT};")
+        self.title.setStyleSheet(
+            f"font-size: 13px; font-weight: 600; color: {DANGER if checked and self.danger else TEXT};")
         super().set_checked(checked)
 
 
@@ -930,17 +934,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(label(
             "Each space opens in a container named after its Arc profile. "
             "Unchecked spaces stay as they are in Zen.", "small", wrap=True))
-
-        layout.addSpacing(8)
-        layout.addWidget(label("INTO ZEN", "caps"))
-        self.add_mode = ModeCard("Add to what's there", "Updates spaces with the same name, leaves the rest of Zen alone")
-        self.replace_mode = ModeCard(
-            "Replace Zen's contents", "Removes tabs, folders, bookmarks, workspaces and containers Arc doesn't have",
-            danger=True)
-        self.add_mode.clicked.connect(lambda: self.set_value("nuke", False))
-        self.replace_mode.clicked.connect(lambda: self.set_value("nuke", True))
-        layout.addWidget(self.add_mode)
-        layout.addWidget(self.replace_mode)
         layout.addStretch(1)
 
         outer = QVBoxLayout(aside)
@@ -1086,6 +1079,17 @@ class MainWindow(QMainWindow):
         self.summary_title.setStyleSheet("font-weight: 600;")
         self.summary_text = label("", "small", wrap=True)
         layout.addLayout(text_column(self.summary_title, self.summary_text), 1)
+        self.add_mode = ModeCard(
+            "Add to what's there", "The rest of Zen stays",
+            "Updates spaces with the same name, leaves the rest of Zen alone")
+        self.replace_mode = ModeCard(
+            "Replace Zen's contents", "Removes what Arc doesn't have",
+            "Removes tabs, folders, bookmarks, workspaces and containers Arc doesn't have", danger=True)
+        self.add_mode.clicked.connect(lambda: self.set_value("nuke", False))
+        self.replace_mode.clicked.connect(lambda: self.set_value("nuke", True))
+        layout.addWidget(self.add_mode)
+        layout.addWidget(self.replace_mode)
+        layout.addSpacing(6)
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.cancel_confirm)
         self.restart_button = QPushButton("Start over")
@@ -1299,9 +1303,8 @@ class MainWindow(QMainWindow):
         tabs = sum(space.tabs for space in chosen)
         folders = sum(space.folders for space in chosen)
         preset_name = {key: title for key, title, _, _ in PRESETS}[preset]
-        title = f"{len(chosen)} of {count(len(self.space_rows), 'space')} · {count(tabs, 'tab')} · {count(folders, 'folder')}"
-        text = (f"{preset_name} · {'replaces Zen’s contents' if v['nuke'] else 'added to Zen'}"
-                f" · profile {self.zen_target()}")
+        title = f"{len(chosen)} of {count(len(self.space_rows), 'space')}"
+        text = f"{count(tabs, 'tab')} · {count(folders, 'folder')} · {preset_name}"
         color = MUTED
         if not chosen:
             text, color = "Pick at least one space.", WARN
@@ -1325,6 +1328,9 @@ class MainWindow(QMainWindow):
         self.aside_fade.setOpacity(1.0 if idle else 0.5)
         self.arc_endpoint.setEnabled(idle)
         self.zen_endpoint.setEnabled(idle)
+        # While confirming the warning needs the room; Cancel brings the choice back
+        self.add_mode.setVisible(idle and not self.confirming)
+        self.replace_mode.setVisible(idle and not self.confirming)
         self.cancel_button.setVisible(idle and self.confirming)
         self.restart_button.setVisible(self.finished)
         self.go_button.setVisible(idle)
