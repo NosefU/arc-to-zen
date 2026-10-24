@@ -58,6 +58,7 @@ from .profile_paths import (
     resolve_zen_profile,
     zen_profile_lock_files,
 )
+from .snapshot import discard, rollback
 from .space_overview import SpaceOverview, arc_space_overview
 from .zen_assets import zen_selectable_icon_svg
 from .zen_runner import ZenRunnerError, find_zen_binary
@@ -107,6 +108,7 @@ QFrame#Card {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 12px
 QFrame#Aside {{ background: transparent; border: 0; border-right: 1px solid {LINE}; }}
 QFrame#Divider {{ background: {LINE}; border: 0; max-height: 1px; min-height: 1px; }}
 QFrame#Notes {{ background: {NOTE_SOFT}; border: 1px solid {NOTE_LINE}; border-radius: 12px; }}
+QFrame#Confirm {{ background: {DANGER_SOFT}; border: 1px solid {DANGER_LINE}; border-radius: 12px; }}
 QFrame#Stat {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 12px; }}
 QFrame#Endpoint {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 10px; }}
 QFrame#Endpoint:hover, QFrame#Endpoint:focus {{ border-color: {ACCENT}; }}
@@ -730,6 +732,7 @@ class StepRow(QWidget):
 class MigrationWorker(QThread):
     line = Signal(str)
     step = Signal(int, int, str)
+    snapshot = Signal(str)
     done = Signal(bool, str)
 
     def __init__(self, config: MigrationOptions):
@@ -743,8 +746,29 @@ class MigrationWorker(QThread):
             self.done.emit(False, str(exc))
 
     def _run(self):
-        run_migration(self.config, emit_line=self.line.emit, on_step=self.step.emit)
+        run_migration(self.config, emit_line=self.line.emit, on_step=self.step.emit,
+                      on_snapshot=lambda path: self.snapshot.emit(str(path)))
         self.done.emit(True, "Migration finished successfully.")
+
+
+class RollbackWorker(QThread):
+    """Puts the Zen profile back from the run's backup."""
+
+    line = Signal(str)
+    done = Signal(bool, str)
+
+    def __init__(self, snapshot_dir: Path):
+        super().__init__()
+        self.snapshot_dir = snapshot_dir
+
+    def run(self):
+        try:
+            restored = rollback(self.snapshot_dir)
+            self.line.emit(f"✅ Rolled back: {restored} files and folders restored")
+            self.done.emit(True, "")
+        except Exception as exc:
+            self.line.emit(f"❌ Rollback failed: {exc}")
+            self.done.emit(False, str(exc))
 
 
 @dataclass(frozen=True)
@@ -796,7 +820,6 @@ CATEGORIES = [
 
 # Not part of the presets
 SAFETY = [
-    Choice("create_backups", "Back up Zen files", "Copies every Zen file before changing it"),
     Choice("auto_close_zen", "Close Zen if needed", "Only the Zen running this profile"),
     Choice("skip_orphaned", "Skip “Orphaned”", "Unmatched Essentials go to the first selected space"),
 ]
@@ -833,6 +856,10 @@ class MainWindow(QMainWindow):
         self.current_step_title = ""
         self.step_notes: Dict[str, str] = {}
         self.step_infos: Dict[str, List[str]] = {}
+        # Backup of the Zen profile taken by the last run; deleted with the window
+        self.snapshot_dir: Optional[Path] = None
+        self.rollback_state = ""  # "", "running", "done" or "failed"
+        self.result_has_notes = False
 
         self.setWindowTitle("Arc to Zen")
         self.setWindowIcon(QIcon(str(resource_path("assets", "app-icon.png"))))
@@ -1042,10 +1069,7 @@ class MainWindow(QMainWindow):
                 rows.addWidget(divider())
             rows.addWidget(self._category_row(title, choices, note, note_keys))
         rows.addWidget(divider())
-        safety = self._category_row("Safety", SAFETY, "", ())
-        self.backup_note = label("Without backups, a failed run can't be undone.", "warn", wrap=True)
-        safety.layout().itemAt(1).layout().addWidget(self.backup_note)
-        rows.addWidget(safety)
+        rows.addWidget(self._category_row("Safety", SAFETY, "", ()))
         layout.addWidget(card)
         layout.addWidget(label("Hover an item for details. Changing any item switches to Custom.", "small", wrap=True))
         layout.addStretch(1)
@@ -1101,6 +1125,10 @@ class MainWindow(QMainWindow):
         actions = QHBoxLayout()
         actions.setSpacing(8)
         actions.addStretch(1)
+        self.result_rollback = QPushButton("Roll back")
+        self.result_rollback.setObjectName("Primary")
+        self.result_rollback.clicked.connect(self.start_rollback)
+        actions.addWidget(self.result_rollback)
         self.result_action = QPushButton()
         self.result_action.clicked.connect(self.result_action_clicked)
         actions.addWidget(self.result_action)
@@ -1108,6 +1136,34 @@ class MainWindow(QMainWindow):
         actions.addWidget(self.steps_toggle)
         actions.addStretch(1)
         head.addLayout(actions)
+        self.result_hint = label("", "small", wrap=True)
+        self.result_hint.setAlignment(Qt.AlignCenter)
+        head.addLayout(self._centered(self.result_hint, 440))
+        self.rollback_link = self._link("Something went wrong? Roll back", self.ask_rollback)
+        head.addWidget(self.rollback_link, 0, Qt.AlignHCenter)
+        self.rollback_confirm = frame("Confirm")
+        confirm = QVBoxLayout(self.rollback_confirm)
+        confirm.setContentsMargins(14, 12, 14, 12)
+        confirm.setSpacing(8)
+        confirm_title = label("Roll Zen back to before the migration?")
+        confirm_title.setAlignment(Qt.AlignCenter)
+        confirm_title.setStyleSheet("font-weight: 600;")
+        confirm.addWidget(confirm_title)
+        self.rollback_confirm_text = label("", "muted", wrap=True)
+        self.rollback_confirm_text.setAlignment(Qt.AlignCenter)
+        confirm.addWidget(self.rollback_confirm_text)
+        confirm_buttons = QHBoxLayout()
+        confirm_buttons.addStretch(1)
+        cancel = QPushButton("Cancel")
+        cancel.clicked.connect(self.cancel_rollback)
+        confirm_buttons.addWidget(cancel)
+        yes = QPushButton("Yes, roll back")
+        yes.setObjectName("PrimaryDanger")
+        yes.clicked.connect(self.start_rollback)
+        confirm_buttons.addWidget(yes)
+        confirm_buttons.addStretch(1)
+        confirm.addLayout(confirm_buttons)
+        head.addLayout(self._centered(self.rollback_confirm, 440))
         self.result_head.setVisible(False)
         run.addWidget(self.result_head)
 
@@ -1337,7 +1393,6 @@ class MainWindow(QMainWindow):
             local_storage=v["local_storage"],
             repair_tabs=v["repair_tabs"],
             skip_orphaned=v["skip_orphaned"],
-            create_backups=v["create_backups"],
             auto_close_zen=v["auto_close_zen"],
             spaces=self.selected_spaces(),
         )
@@ -1345,7 +1400,7 @@ class MainWindow(QMainWindow):
     def toggle_log(self) -> None:
         self.log.setVisible(not self.log.isVisible())
         self.log_toggle.setText("Hide log" if self.log.isVisible() else "Show log")
-        if self.finished and not self.succeeded:
+        if self.result_action.text() in ("Show log", "Hide log"):
             self.result_action.setText(self.log_toggle.text())
 
     def toggle_steps(self) -> None:
@@ -1357,7 +1412,9 @@ class MainWindow(QMainWindow):
         self.steps_toggle.setText("Hide all steps" if shown else f"Show all {count(len(self.step_rows), 'step')}")
 
     def result_action_clicked(self) -> None:
-        if self.finished and not self.succeeded:
+        if self.result_action.text() == "Start over":
+            self.reset_run()
+        elif self.result_action.text() in ("Show log", "Hide log"):
             self.toggle_log()
         else:
             self.open_zen()
@@ -1378,13 +1435,16 @@ class MainWindow(QMainWindow):
         return super().eventFilter(watched, event)
 
     def place_result(self) -> None:
-        """Center the result in the column, a failure at a third of it; steps and log hang below."""
+        """Place the result in the column; the steps and the log hang below it."""
         if not self.result_head.isVisible():
             self.result_spacer.setFixedHeight(0)
             return
-        free = self.run_scroll.viewport().height() - 20 - 24 - self.result_head.sizeHint().height()
-        share = 3 if not self.succeeded else 2
-        self.result_spacer.setFixedHeight(max(0, free // share))
+        if self.rollback_state or (self.succeeded and not self.result_has_notes):
+            free = self.run_scroll.viewport().height() - 20 - 24 - self.result_head.sizeHint().height()
+            self.result_spacer.setFixedHeight(max(0, free // 2))
+        else:
+            # A failure and a run with notes start at the same fixed height
+            self.result_spacer.setFixedHeight(92)
 
     def refresh(self, *_):
         """Bring every chip, card, and the footer in line with the current choices."""
@@ -1402,7 +1462,6 @@ class MainWindow(QMainWindow):
             restyle(chip)
         for note, keys in self.notes:
             note.setVisible(any(v[key] for key in keys))
-        self.backup_note.setVisible(not v["create_backups"])
         preset = self.preset()
         for key, card in self.preset_cards.items():
             card.set_checked(key == preset)
@@ -1422,14 +1481,20 @@ class MainWindow(QMainWindow):
         if self.confirming:
             title = f"Replace everything in {self.zen_target()}?"
             text = ("Tabs, folders, bookmarks, workspaces and containers Arc doesn't have will be removed. "
-                    + ("Backups are on." if v["create_backups"] else "Backups are off!"))
+                    "You can roll back afterwards.")
             color = DANGER
         if self.running:
             title, text, color = "Migrating…", "Keep Zen closed until it finishes.", MUTED
+        elif self.rollback_state == "running":
+            title, text, color = "Rolling back…", "Keep Zen closed until it finishes.", MUTED
+        elif self.rollback_state == "done":
+            title, text, color = "Rolled back", "You can close this window.", MUTED
+        elif self.rollback_state == "failed":
+            title, text, color = "Rollback failed", "The backup is still in the Zen profile.", DANGER
         elif self.finished and self.succeeded:
-            title, text, color = "Done", "You can close this window.", MUTED
+            title, text, color = "Done", "The backup is deleted when you close this window.", MUTED
         elif self.finished:
-            title, text, color = "Migration stopped", "Fix the problem above and start over.", DANGER
+            title, text, color = "Migration stopped", "Roll back, or fix the problem and start over.", DANGER
         self.summary_title.setText(title)
         self.summary_text.setText(text)
         self.summary_text.setStyleSheet(f"color: {color}; font-size: 12px;")
@@ -1443,7 +1508,8 @@ class MainWindow(QMainWindow):
         self.add_mode.setVisible(idle and not self.confirming)
         self.replace_mode.setVisible(idle and not self.confirming)
         self.cancel_button.setVisible(idle and self.confirming)
-        self.restart_button.setVisible(self.finished)
+        # After a rollback Start over sits on the result screen itself
+        self.restart_button.setVisible(self.finished and self.rollback_state not in ("running", "done"))
         self.go_button.setVisible(idle)
         self.go_button.setEnabled(bool(chosen))
         if self.confirming:
@@ -1470,6 +1536,7 @@ class MainWindow(QMainWindow):
 
     def reset_run(self) -> None:
         self.finished = False
+        self.rollback_state = ""
         self.log.clear()
         self.pages.setCurrentIndex(0)
         self.refresh_zen_status()
@@ -1485,6 +1552,10 @@ class MainWindow(QMainWindow):
         if not self.ensure_zen_closed(config):
             self.refresh()
             return
+        # Only the last run can be rolled back
+        discard(self.snapshot_dir)
+        self.snapshot_dir = None
+        self.rollback_state = ""
 
         while self.steps_layout.count():
             item = self.steps_layout.takeAt(0)
@@ -1519,6 +1590,7 @@ class MainWindow(QMainWindow):
         self.worker = MigrationWorker(config)
         self.worker.line.connect(self.append_log)
         self.worker.step.connect(self.update_step)
+        self.worker.snapshot.connect(self.set_snapshot)
         self.worker.done.connect(self.finish_migration)
         self.worker.start()
 
@@ -1599,18 +1671,28 @@ class MainWindow(QMainWindow):
         self.result_mark.setText("✓" if ok else "!")
         self.result_mark.setStyleSheet(
             f"background: {color}; color: #ffffff; border-radius: 28px; font-size: 26px; font-weight: 700;")
-        landed = f"{count(len(chosen), 'space')}, {count(tabs, 'tab')} and {count(folders, 'folder')} are in Zen."
+        self.result_has_notes = ok and bool(notes)
+        can_roll_back = self.snapshot_dir is not None
         if not ok:
             self.result_title.setText("Migration stopped")
             reason = message if message.endswith(".") else f"{message}."
-            backups = " Backups of changed files are in the Zen profile." if self.values["create_backups"] else ""
-            self.result_text.setText(reason + backups)
+            undo = " The steps before it already changed Zen; roll back to put it back as it was." if can_roll_back else ""
+            self.result_text.setText(reason + undo)
         elif notes:
             self.result_title.setText(f"Migration complete with {count(len(notes), 'note')}")
-            self.result_text.setText(f"{landed} Have a look at the notes below.")
+            self.result_text.setText("Your Arc spaces are in Zen. A few things didn't carry over as they were — "
+                                     "see the notes below.")
         else:
             self.result_title.setText("Migration complete")
-            self.result_text.setText(f"{landed} Open Zen to see them.")
+            self.result_text.setText("Your Arc spaces are in Zen, ready to open.")
+        keep = "The backup is kept until you close this window."
+        self.result_hint.setText(f"Check your spaces in Zen. {keep}" if ok else keep)
+        self.result_hint.setVisible(can_roll_back)
+        self.rollback_link.setVisible(ok and can_roll_back)
+        self.rollback_confirm.setVisible(False)
+        self.rollback_confirm_text.setText(
+            f"Everything this migration changed in {self.zen_target()} is undone: spaces, tabs, settings and sign-ins.")
+        self.result_rollback.setVisible(not ok and can_roll_back)
 
         while self.result_stats_layout.count():
             item = self.result_stats_layout.takeAt(0)
@@ -1655,8 +1737,10 @@ class MainWindow(QMainWindow):
             self.result_notes_layout.addWidget(row)
         self.result_notes.setVisible(ok and bool(notes))
 
-        self.result_action.setObjectName("Primary" if ok else "PrimaryDanger")
+        # A failure offers the rollback first; its log is the second button
+        self.result_action.setObjectName("Primary" if ok else "" if can_roll_back else "PrimaryDanger")
         self.result_action.setText("Open Zen" if ok else "Show log")
+        self.result_action.setVisible(True)
         restyle(self.result_action)
         self.steps_toggle.setVisible(ok)
         # A failure shows every step at once; a success keeps them one click away
@@ -1668,6 +1752,82 @@ class MainWindow(QMainWindow):
         self.run_scroll.verticalScrollBar().setValue(0)
         self.refresh()
         QTimer.singleShot(0, self.place_result)
+
+    # ----- rollback -------------------------------------------------------
+
+    def set_snapshot(self, path: str) -> None:
+        self.snapshot_dir = Path(path)
+
+    def ask_rollback(self) -> None:
+        self.rollback_link.setVisible(False)
+        self.rollback_confirm.setVisible(True)
+        QTimer.singleShot(0, self.place_result)
+        # With notes the result is tall and the question lands below the fold
+        QTimer.singleShot(0, lambda: self.run_scroll.ensureWidgetVisible(self.rollback_confirm, 0, 24))
+
+    def cancel_rollback(self) -> None:
+        self.rollback_confirm.setVisible(False)
+        self.rollback_link.setVisible(True)
+        QTimer.singleShot(0, self.place_result)
+
+    def start_rollback(self) -> None:
+        if not self.snapshot_dir:
+            return
+        try:
+            config = self.selected_config()
+        except Exception as exc:
+            QMessageBox.critical(self, "Can't roll back", str(exc))
+            return
+        if not self.ensure_zen_closed(config):
+            return
+        self.rollback_state = "running"
+        self.show_rollback_state("…", ACCENT, "Rolling back…",
+                                 f"Putting back the files of {self.zen_target()} as they were before the migration.")
+        self.rollback_worker = RollbackWorker(self.snapshot_dir)
+        self.rollback_worker.line.connect(self.log.append)
+        self.rollback_worker.done.connect(self.finish_rollback)
+        self.rollback_worker.start()
+
+    def finish_rollback(self, ok: bool, message: str) -> None:
+        if ok:
+            self.rollback_state = "done"
+            self.show_rollback_state("↺", ACCENT, "Zen is back as it was",
+                                     f"Everything this migration changed in {self.zen_target()} is undone. "
+                                     "Fix what went wrong and start over, or close the window.")
+            self.result_action.setText("Start over")
+            self.result_action.setObjectName("Primary")
+            restyle(self.result_action)
+            self.result_action.setVisible(True)
+        else:
+            self.rollback_state = "failed"
+            self.show_rollback_state("!", DANGER, "Rollback failed",
+                                     f"{message} The backup is still in the Zen profile: {self.snapshot_dir.name}.")
+            self.result_action.setText("Show log")
+            self.result_action.setObjectName("PrimaryDanger")
+            restyle(self.result_action)
+            self.result_action.setVisible(True)
+
+    def show_rollback_state(self, mark: str, color: str, title: str, text: str) -> None:
+        self.result_mark.setText(mark)
+        self.result_mark.setStyleSheet(
+            f"background: {color}; color: #ffffff; border-radius: 28px; font-size: 26px; font-weight: 700;")
+        self.result_badge.setVisible(False)
+        self.result_title.setText(title)
+        self.result_text.setText(text)
+        for widget in (self.result_stats, self.result_notes, self.result_rollback, self.result_action,
+                       self.steps_toggle, self.result_hint, self.rollback_link, self.rollback_confirm,
+                       self.steps_card, self.log):
+            widget.setVisible(False)
+        self.refresh()
+        QTimer.singleShot(0, self.place_result)
+
+    def closeEvent(self, event) -> None:
+        if self.running or self.rollback_state == "running":
+            event.ignore()
+            return
+        discard(self.snapshot_dir)
+        super().closeEvent(event)
+
 
 def main() -> int:
     QApplication.setDesktopSettingsAware(False)

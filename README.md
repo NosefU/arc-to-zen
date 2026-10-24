@@ -52,7 +52,7 @@ Everything is on one screen:
   tabs and how they look) or **Arc as it was** (also sign-ins, boosts,
   Air Traffic Control and an Arc-like Zen), or turn single items on and off,
   which makes it **Custom**. Hover an item for what it does. **Safety** holds
-  backups, closing Zen automatically and the `Orphaned` workspace. Only the
+  closing Zen automatically and the `Orphaned` workspace. Only the
   Zen running the target profile is closed; Zen windows of other profiles keep
   running.
 - **Footer**: how many spaces, tabs and folders go, whether they are **added
@@ -65,8 +65,12 @@ Everything is on one screen:
   in Zen and an **Open Zen** button; a run with notes (tabs Zen cannot open,
   boost JavaScript left out, a missing spellcheck dictionary, …) lists them
   and puts a small "i" on the green mark; the steps are one click away. A
-  failed run shows the reason, a **Show log** button and every step, the failed
-  one with its cause.
+  failed run shows the reason, a **Roll back** and a **Show log** button and
+  every step, the failed one with its cause.
+- **Backup and rollback**: before the first step the Zen profile is backed up,
+  always. Until the window is closed, a failed run offers **Roll back** and a
+  finished one **Something went wrong? Roll back**; either puts the profile back
+  exactly as it was. Closing the window deletes the backup.
 
 Close Arc first, then open Zen when the migration is done.
 
@@ -115,8 +119,16 @@ regular bookmarks before importing Arc data, even when only some spaces are
 selected. It also removes Zen workspaces that are not being migrated, such as
 the default `Space` of a new profile, and containers no migrated Arc profile
 uses, such as the built-in `Banking` and `Shopping`, together with their
-cookies, site permissions, and site storage (localStorage, IndexedDB). Backups are created unless
-`--no-backups` is used.
+cookies, site permissions, and site storage (localStorage, IndexedDB).
+
+Every run backs up the Zen profile first and prints the backup folder with the
+command that undoes the run:
+
+```bash
+python cli.py --rollback "<profile>/arc-to-zen-backup-<time>"
+```
+
+Delete that folder once Zen looks right.
 
 Useful switches:
 
@@ -126,7 +138,7 @@ Useful switches:
 - `--space NAME` migrates only that space; repeat it to pick several. Other Zen
   workspaces are kept
 - `--include-orphaned` creates a separate workspace for unmatched Essentials
-- `--no-backups`
+- `--rollback BACKUP` puts the Zen profile back from a run's backup folder
 - `--no-favicons`
 - `--no-folder-states`
 - `--no-workspace-icons`

@@ -7,7 +7,8 @@ import argparse
 import logging
 from pathlib import Path
 
-from .migration import MigrationOptions, list_arc_spaces, nuke_zen_profile_only, run_migration
+from .migration import MigrationOptions, ensure_zen_profile_free, list_arc_spaces, nuke_zen_profile_only, run_migration
+from .snapshot import rollback, snapshot_profile
 
 
 def parse_args() -> argparse.Namespace:
@@ -42,9 +43,9 @@ def parse_args() -> argparse.Namespace:
         help='Import Arc essential tabs that could not be matched to a workspace into an "Orphaned" workspace.',
     )
     parser.add_argument(
-        "--no-backups",
-        action="store_true",
-        help="Do not create backups before changing Zen profile files.",
+        "--rollback",
+        metavar="BACKUP",
+        help="Put the Zen profile back as it was before a migration, from the backup folder it printed, and exit.",
     )
     parser.add_argument(
         "--space",
@@ -148,12 +149,26 @@ def main() -> int:
             print(name)
         return 0
 
-    if args.nuke_only:
+    if args.rollback:
+        backup = Path(args.rollback).expanduser()
         try:
-            nuke_zen_profile_only(args.zen_profile, create_backups=not args.no_backups)
-        except RuntimeError as exc:
+            ensure_zen_profile_free(snapshot_profile(backup))
+            rollback(backup)
+        except (OSError, ValueError, RuntimeError) as exc:
             logging.error(f"❌ {exc}")
             return 1
+        logging.info(f"Delete {backup} when you no longer need it.")
+        return 0
+
+    backups: list[Path] = []
+    if args.nuke_only:
+        try:
+            nuke_zen_profile_only(args.zen_profile, on_snapshot=backups.append)
+        except RuntimeError as exc:
+            logging.error(f"❌ {exc}")
+            print_rollback_hint(backups)
+            return 1
+        print_rollback_hint(backups)
         return 0
 
     options = MigrationOptions(
@@ -180,15 +195,25 @@ def main() -> int:
         local_storage=args.local_storage,
         repair_tabs=not args.no_tab_repair,
         skip_orphaned=not args.include_orphaned,
-        create_backups=not args.no_backups,
         spaces=tuple(args.spaces) if args.spaces else None,
     )
     try:
-        run_migration(options)
+        run_migration(options, on_snapshot=backups.append)
     except RuntimeError as exc:
         logging.error(f"❌ {exc}")
+        print_rollback_hint(backups)
         return 1
+    print_rollback_hint(backups)
     return 0
+
+
+def print_rollback_hint(backups: list[Path]) -> None:
+    if backups:
+        logging.info(
+            f"\nThe Zen profile was backed up to {backups[0]}.\n"
+            f"To undo this migration: python cli.py --rollback \"{backups[0]}\"\n"
+            "Delete that folder once Zen looks right."
+        )
 
 
 if __name__ == "__main__":

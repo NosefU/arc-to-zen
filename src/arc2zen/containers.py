@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .profile_paths import resolve_arc_profile, zen_session_files
+from .snapshot import active_snapshot
 from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
 
 logger = logging.getLogger(__name__)
@@ -210,7 +211,11 @@ def delete_container_data(profile: Path, context_ids: set[int], backup_dir: Opti
             for origin_dir in repository.iterdir():
                 if not origin_dir.is_dir() or container_of(origin_dir.name) not in context_ids:
                     continue
-                if backup_dir:
+                snapshot = active_snapshot()
+                if snapshot:
+                    # The run's snapshot copies only localStorage; keep the whole folder for rollback
+                    snapshot.preserve(origin_dir)
+                elif backup_dir:
                     target = backup_dir / origin_dir.relative_to(profile)
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.move(str(origin_dir), target)

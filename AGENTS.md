@@ -29,8 +29,8 @@ python cli.py --nuke
 
 `--nuke` is destructive for the target Zen profile: it clears tabs, folders,
 pins, groups, closed-tab state, and regular bookmarks before importing Arc data.
-Use `--nuke-only` to perform only that cleanup. Backups are controlled by
-`create_backups` / `--no-backups`.
+Use `--nuke-only` to perform only that cleanup. Every run backs the profile up
+first and can be undone with `--rollback <backup folder>`.
 
 ## Main Files
 
@@ -76,8 +76,9 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     (`zen_assets.zen_selectable_icon_svg`).
   - Lets users pick Arc/Zen profiles, Arc spaces, optional migration steps, and
     nuke mode.
-  - Offers runtime options for skipping `Orphaned`, creating backups, and
-    closing Zen automatically.
+  - Offers runtime options for skipping `Orphaned` and closing Zen automatically.
+  - Offers to roll back to the run's backup on the result screen and deletes the
+    backup when the window closes.
   - Confirms a replacing migration in the footer, closes only the Zen running the target profile
     (found by its `.parentlock` / `parent.lock`), then streams migration
     progress into the UI and ends on a result screen.
@@ -86,6 +87,15 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     should act on or know (skipped tabs, boost JavaScript, missing dictionary),
     not for routine skips.
   - Uses a temporary export file so GUI runs do not leave `arc_pinned_tabs_export.json`.
+
+- `src/arc2zen/snapshot.py`
+  - The run's backup: before the first step `run_migration` copies the whole
+    Zen profile, except caches, telemetry, plugins, lock files and site storage
+    other than localStorage (`storage/default/*/ls`), into
+    `<profile>/arc-to-zen-backup-<time>/` with a manifest that also records what
+    did not exist yet. `rollback()` restores it and deletes what the run created.
+    Steps get `create_backups=False`; their own backups are for running a module
+    by itself.
 
 - Root `cli.py` and `desktop.py`
   - Thin user-facing entrypoints for the packaged CLI and GUI.
@@ -249,7 +259,14 @@ Zen:
 - Arc source files are read only.
 - Zen JSONLZ4 files use Mozilla's format: 8-byte magic header, 4-byte
   little-endian uncompressed size, then an LZ4 block.
-- Migration steps create timestamped backups before mutating Zen profile files.
+- Backups: whatever a feature changes in the Zen profile must come back on
+  rollback. The run's snapshot copies the whole profile except `SKIPPED_NAMES`,
+  `SKIPPED_PREFIXES` and site storage beyond localStorage (`snapshot.py`), so
+  a new file or folder is covered by itself, and one the run creates is removed.
+  A feature that changes anything the snapshot skips extends it (as container
+  cleanup does with `Snapshot.preserve()` before deleting site folders). Check a
+  new feature by hashing the profile, migrating, rolling back and comparing:
+  only caches and telemetry may differ.
 - Generated exports, snapshots, local virtualenvs, bytecode, and backup files
   should remain untracked.
 

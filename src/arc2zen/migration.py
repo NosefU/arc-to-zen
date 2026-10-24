@@ -23,6 +23,7 @@ from .favicons import migrate_favicons
 from .folder_states import sync_folder_states
 from .profile_paths import is_zen_profile_in_use, resolve_zen_profile
 from .sessions import import_arc_export
+from .snapshot import Snapshot, set_active_snapshot
 from .tab_repair import repair_broken_tabs
 from .workspace_icons import sync_workspace_icons
 from .workspace_themes import sync_workspace_themes
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 LineCallback = Callable[[str], None]
 StepCallback = Callable[[int, int, str], None]
+SnapshotCallback = Callable[[Path], None]
 
 
 @dataclass(frozen=True)
@@ -60,7 +62,6 @@ class MigrationOptions:
     website_languages: bool = True
     interface_language: bool = True
     skip_orphaned: bool = True
-    create_backups: bool = True
     auto_close_zen: bool = True
     # Arc space names to migrate; None migrates every space.
     spaces: tuple[str, ...] | None = None
@@ -213,7 +214,11 @@ def extract_arc_data(
 
 
 def migration_steps(options: MigrationOptions, export_file: Path) -> list[MigrationStep]:
-    """Build the ordered migration step list for the selected options."""
+    """Build the ordered migration step list for the selected options.
+
+    Steps make no backups of their own (create_backups=False): the run backs up
+    the whole profile before the first step.
+    """
     steps = [
         MigrationStep(
             "Extract Arc sidebar data",
@@ -232,7 +237,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 zen_profile=options.zen_profile,
                 arc_export_file=export_file,
                 nuke=options.nuke,
-                create_backups=options.create_backups,
+                create_backups=False,
                 space_names=options.spaces,
             ),
         ),
@@ -245,7 +250,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 "Repair tabs with invalid URLs",
                 lambda: repair_broken_tabs(
                     zen_profile=options.zen_profile,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                 ),
             ),
         ),
@@ -257,7 +262,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     export_file=export_file,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                 ),
             ),
         ),
@@ -268,7 +273,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 lambda: sync_folder_states(
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                     space_names=options.spaces,
                 ),
             ),
@@ -280,7 +285,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 lambda: sync_workspace_icons(
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                     space_names=options.spaces,
                 ),
             ),
@@ -292,7 +297,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 lambda: sync_workspace_themes(
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                     space_names=options.spaces,
                     default_theme=options.default_theme,
                 ),
@@ -305,7 +310,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 lambda: migrate_boosts(
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                 ),
             ),
         ),
@@ -315,7 +320,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 "Install the Arc Look mod",
                 lambda: install_arc_look_mod(
                     zen_profile=options.zen_profile,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                 ),
             ),
         ),
@@ -326,7 +331,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 lambda: apply_zen_settings(
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                     sidebar=options.sidebar_mode,
                     toolbar=options.toolbar_layout,
                     split_drag=options.split_drag,
@@ -340,7 +345,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 lambda: migrate_languages(
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                     website=options.website_languages,
                     interface=options.interface_language,
                 ),
@@ -353,7 +358,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                 lambda: migrate_link_routing(
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                     space_names=options.spaces,
                 ),
             ),
@@ -366,7 +371,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     export_file=export_file,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                     prune=options.nuke,
                 ),
             ),
@@ -379,7 +384,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     export_file=export_file,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                 ),
             ),
         ),
@@ -391,7 +396,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     export_file=export_file,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                 ),
             ),
         ),
@@ -403,7 +408,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     arc_profile=options.arc_profile,
                     zen_profile=options.zen_profile,
                     export_file=export_file,
-                    create_backups=options.create_backups,
+                    create_backups=False,
                 ),
             ),
         ),
@@ -423,15 +428,20 @@ def run_migration(
     options: MigrationOptions,
     emit_line: LineCallback | None = None,
     on_step: StepCallback | None = None,
+    on_snapshot: SnapshotCallback | None = None,
 ) -> bool:
-    """Run a complete Arc to Zen migration."""
+    """Run a complete Arc to Zen migration.
+
+    The Zen profile is backed up first, always; on_snapshot gets the backup folder,
+    which snapshot.rollback() restores. The steps themselves make no backups.
+    """
     if options.export_file is not None:
         export_path = Path(options.export_file).expanduser()
-        return _run_migration_with_export(options, export_path, emit_line, on_step)
+        return _run_migration_with_export(options, export_path, emit_line, on_step, on_snapshot)
 
     with tempfile.TemporaryDirectory(prefix="arc-to-zen-") as temp_dir:
         export_path = Path(temp_dir) / "arc_pinned_tabs_export.json"
-        return _run_migration_with_export(options, export_path, emit_line, on_step)
+        return _run_migration_with_export(options, export_path, emit_line, on_step, on_snapshot)
 
 
 def _run_migration_with_export(
@@ -439,6 +449,7 @@ def _run_migration_with_export(
     export_file: Path,
     emit_line: LineCallback | None,
     on_step: StepCallback | None,
+    on_snapshot: SnapshotCallback | None,
 ) -> bool:
     ensure_zen_profile_free(options.zen_profile)
     steps = migration_steps(options, export_file)
@@ -452,6 +463,10 @@ def _run_migration_with_export(
             root_logger.setLevel(logging.INFO)
 
     try:
+        snapshot = Snapshot.take(resolve_zen_profile(options.zen_profile))
+        if on_snapshot:
+            on_snapshot(snapshot.root)
+        set_active_snapshot(snapshot)
         for index, step in enumerate(steps, start=1):
             if on_step:
                 on_step(index, len(steps), step.title)
@@ -459,6 +474,7 @@ def _run_migration_with_export(
             if step.operation() is False:
                 raise RuntimeError(f"{step.title} failed")
     finally:
+        set_active_snapshot(None)
         if handler:
             root_logger.removeHandler(handler)
             root_logger.setLevel(old_level)
@@ -466,9 +482,12 @@ def _run_migration_with_export(
     return True
 
 
-def nuke_zen_profile_only(zen_profile: str | Path | None = None, create_backups: bool = True) -> bool:
-    """Clear the target Zen profile without importing Arc data."""
+def nuke_zen_profile_only(zen_profile: str | Path | None = None, on_snapshot: SnapshotCallback | None = None) -> bool:
+    """Clear the target Zen profile without importing Arc data; the profile is backed up first."""
     ensure_zen_profile_free(zen_profile)
-    if not import_arc_export(zen_profile=zen_profile, nuke=True, nuke_only=True, create_backups=create_backups):
+    snapshot = Snapshot.take(resolve_zen_profile(zen_profile))
+    if on_snapshot:
+        on_snapshot(snapshot.root)
+    if not import_arc_export(zen_profile=zen_profile, nuke=True, nuke_only=True, create_backups=False):
         raise RuntimeError("Zen profile cleanup failed")
     return True
