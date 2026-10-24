@@ -70,7 +70,10 @@ Pick the archive for your OS:
 Everything is on one screen:
 
 - **Header**: the Arc data folder and the Zen profile are found automatically,
-  with their status; click either to pick another one.
+  with their status; click either to pick another one. Without a Zen profile
+  nothing can run yet: a note above the presets offers **Download Zen** and
+  **Choose profile folder…**, and once Zen is installed and opened, coming back
+  to the window finds it.
 - **Spaces** (left): pick the Arc spaces to migrate; each row shows the
   space's icon, colors, tab and folder counts, and its Arc profile. As in Arc,
   spaces stay bound to their profile: each profile becomes one Zen container

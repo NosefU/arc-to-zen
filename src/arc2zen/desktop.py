@@ -21,8 +21,8 @@ if sys.stderr is None:
 
 try:
     import psutil
-    from PySide6.QtCore import QByteArray, QEvent, QPoint, QRect, QRectF, QSize, Qt, QThread, QTimer, Signal
-    from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPixmap
+    from PySide6.QtCore import QByteArray, QEvent, QPoint, QRect, QRectF, QSize, Qt, QThread, QTimer, QUrl, Signal
+    from PySide6.QtGui import QColor, QDesktopServices, QIcon, QPainter, QPalette, QPixmap
     from PySide6.QtSvg import QSvgRenderer
     from PySide6.QtWidgets import (
         QApplication,
@@ -80,6 +80,7 @@ OK_SOFT = "#e8f5ee"
 OK_LINE = "#bfe3cf"
 WARN = "#8a5100"
 WARN_SOFT = "#fdf3e3"
+WARN_LINE = "#f0d7a8"
 # Notes on a finished run: in the accent color, part of the app rather than an alarm
 NOTE_SOFT = "#f5f4fe"
 NOTE_LINE = "#dcd8fb"
@@ -114,6 +115,9 @@ QFrame#Confirm {{ background: {DANGER_SOFT}; border: 1px solid {DANGER_LINE}; bo
 QFrame#Stat {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 12px; }}
 QFrame#Endpoint {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 10px; }}
 QFrame#Endpoint:hover, QFrame#Endpoint:focus {{ border-color: {ACCENT}; }}
+QFrame#Endpoint[tone="warn"] {{ background: {WARN_SOFT}; border-color: {WARN_LINE}; }}
+QFrame#Endpoint[tone="danger"] {{ background: {DANGER_SOFT}; border-color: {DANGER}; }}
+QFrame#Warning {{ background: {WARN_SOFT}; border: 1px solid {WARN_LINE}; border-radius: 12px; }}
 QFrame#SpaceRow {{ background: transparent; border: 1.5px solid transparent; border-radius: 10px; }}
 QFrame#SpaceRow[checked="true"] {{ background: {ACCENT_SOFT}; border-color: {ACCENT}; }}
 QFrame#SpaceRow:focus {{ border-color: {ACCENT}; }}
@@ -148,6 +152,7 @@ QPushButton#Chip {{ background: transparent; border: 1px solid {LINE}; border-ra
     color: {MUTED}; font-weight: 500; padding: 5px 12px; min-height: 20px; }}
 QPushButton#Chip:hover {{ border-color: #b3afc2; }}
 QPushButton#Chip:checked {{ background: {ACCENT_SOFT}; border-color: {ACCENT}; color: {ACCENT_TEXT}; font-weight: 600; }}
+QPushButton#Chip:disabled {{ background: transparent; border-color: {LINE}; color: #b5b2c2; }}
 QPushButton#Chip[dimmed="true"] {{ background: transparent; border-color: {LINE}; color: #b5b2c2; }}
 QScrollBar:vertical {{ background: transparent; width: 10px; margin: 4px 2px; }}
 QScrollBar::handle:vertical {{ background: #cfccda; border-radius: 3px; min-height: 32px; }}
@@ -595,11 +600,14 @@ class Endpoint(Clickable):
         layout.addWidget(self.dot)
         layout.addLayout(text_column(self.title, self.subtitle))
 
-    def set_status(self, title: str, subtitle: str, color: str, tooltip: str) -> None:
+    def set_status(self, title: str, subtitle: str, color: str, tooltip: str, tone: str = "") -> None:
+        """tone "warn" or "danger" tints the card when what it stands for is missing."""
         self.dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
         self.title.setText(title)
         self.subtitle.setText(subtitle)
         self.setToolTip(tooltip)
+        self.setProperty("tone", tone)
+        restyle(self)
 
 
 class SpaceRow(Clickable):
@@ -719,10 +727,10 @@ class PresetCard(Clickable):
         layout.addStretch(1)
         self.setMinimumHeight(76)
 
-    def set_available(self, available: bool) -> None:
-        """Without Arc only "just the look" can run."""
+    def set_available(self, available: bool, reason: str = "") -> None:
+        """Without Arc only "just the look" can run; without Zen nothing can. reason replaces the hint."""
         self.setEnabled(available)
-        self.hint_label.setText(self.hint if available else "Needs Arc on this Mac.")
+        self.hint_label.setText(reason or self.hint)
         grey = "" if available else f" color: {OFF};"
         self.title_label.setStyleSheet("font-size: 15px; font-weight: 600;" + grey)
         self.hint_label.setStyleSheet(grey)
@@ -734,6 +742,10 @@ class ModeCard(Clickable):
     def __init__(self, title: str, subtitle: str, hint: str, danger: bool = False):
         super().__init__("Mode", title)
         self.danger = danger
+        # Faded while nothing can run, e.g. before Zen is found
+        self.fade = QGraphicsOpacityEffect(self)
+        self.fade.setOpacity(1.0)
+        self.setGraphicsEffect(self.fade)
         self.setProperty("danger", "true" if danger else "false")
         self.setToolTip(hint)
         self.radio = QLabel()
@@ -907,6 +919,7 @@ PRESETS = [
     ("look", "Just the look", "Make Zen look like Arc. Your tabs and spaces in Zen stay.", False),
     ("custom", "Custom", "Turn items on and off below.", False),
 ]
+ZEN_DOWNLOAD_URL = "https://zen-browser.app/download/"
 # The rows "just the look" shows; the others don't apply to it
 LOOK_ROWS = ("Look", "Zen setup", "Safety")
 ZEN_SETUP = [("arc_look_mod", "Arc Look mod"), ("sidebar_mode", "sidebar"), ("toolbar_layout", "toolbars"),
@@ -940,6 +953,8 @@ class MainWindow(QMainWindow):
         self.arc_ok = False
         self.arc_forced = False
         self.zen_spaces: set[str] = set()
+        # "ok", "missing" (no Zen profile on this Mac) or "wrong" (the chosen folder has none)
+        self.zen_state = "ok"
         # What the last run was, for its result screen
         self.run_look = False
         self.run_look_spaces = 0
@@ -975,7 +990,7 @@ class MainWindow(QMainWindow):
         self.zen_combo.currentTextChanged.connect(self.refresh_zen_status)
         self.reload_spaces()
         self.refresh_zen_status()
-        self.go_button.setFocus()
+        (self.download_zen if self.zen_state == "missing" else self.go_button).setFocus()
 
     # ----- building -------------------------------------------------------
 
@@ -1116,6 +1131,7 @@ class MainWindow(QMainWindow):
             self.chips[choice.key] = chip
         else:
             # Always moved: it stays on, shows a padlock and only explains itself
+            self.locked_chips.append(chip)
             chip.setText(" " + choice.label)
             chip.setIcon(QIcon(svg_pixmap(LOCK_SVG, ACCENT_TEXT, 12, max(2.0, self.devicePixelRatioF()))))
             chip.setChecked(True)
@@ -1150,6 +1166,30 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(24, 20, 24, 24)
         layout.setSpacing(14)
+        self.zen_banner = frame("Warning")
+        banner = QHBoxLayout(self.zen_banner)
+        banner.setContentsMargins(16, 14, 16, 14)
+        banner.setSpacing(14)
+        mark = QLabel("!")
+        mark.setFixedSize(36, 36)
+        mark.setAlignment(Qt.AlignCenter)
+        mark.setStyleSheet(f"background: {WINDOW}; border: 1px solid {WARN_LINE}; border-radius: 10px;"
+                           f" color: {WARN}; font-size: 18px; font-weight: 700;")
+        banner.addWidget(mark, 0, Qt.AlignTop)
+        self.zen_banner_title = label()
+        self.zen_banner_title.setStyleSheet("font-weight: 600;")
+        self.zen_banner_text = label("", "muted", wrap=True)
+        banner.addLayout(text_column(self.zen_banner_title, self.zen_banner_text), 1)
+        self.download_zen = QPushButton("Download Zen")
+        self.download_zen.setObjectName("Primary")
+        self.download_zen.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(ZEN_DOWNLOAD_URL)))
+        banner.addWidget(self.download_zen, 0, Qt.AlignVCenter)
+        choose_zen = QPushButton("Choose profile folder…")
+        choose_zen.setObjectName("Accent")
+        choose_zen.clicked.connect(self.browse_zen)
+        banner.addWidget(choose_zen, 0, Qt.AlignVCenter)
+        layout.addWidget(self.zen_banner)
+
         layout.addWidget(label("WHAT COMES ALONG", "caps"))
 
         presets = QHBoxLayout()
@@ -1176,6 +1216,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.look_note)
 
         self.chips: Dict[str, QPushButton] = {}
+        self.locked_chips: List[QPushButton] = []
         self.notes: List[tuple[QLabel, tuple]] = []
         card = frame("Card")
         rows = QVBoxLayout(card)
@@ -1506,9 +1547,16 @@ class MainWindow(QMainWindow):
             profile = resolve_zen_profile(text)
         except Exception:
             self.zen_spaces = set()
-            self.zen_endpoint.set_status("Zen", "Not a Zen profile", DANGER,
-                                         f"{text}\nChoose a profile folder or Zen's data folder.")
+            # Nothing chosen and nothing found means Zen isn't installed or never opened
+            self.zen_state = "wrong" if text else "missing"
+            if text:
+                self.zen_endpoint.set_status("Zen", "No Zen profile here", DANGER,
+                                             f"{text}\nChoose a profile folder or Zen's data folder.", "danger")
+            else:
+                self.zen_endpoint.set_status("Zen", "Not found on this Mac", OFF,
+                                             "Install Zen and open it once, or choose its profile folder.", "warn")
         else:
+            self.zen_state = "ok"
             title = f"Zen · {profile.name}"
             self.zen_spaces = zen_space_names(profile)
             if is_zen_profile_in_use(profile):
@@ -1678,9 +1726,28 @@ class MainWindow(QMainWindow):
         preset = self.preset()
         for key, card in self.preset_cards.items():
             card.set_checked(key == preset)
-            card.set_available(self.arc_ok or key == "look")
+            zen_ok = self.zen_state == "ok"
+            needs_arc = not self.arc_ok and key != "look"
+            card.set_available(zen_ok and not needs_arc, "Needs Arc on this Mac." if needs_arc else "")
         self.add_mode.set_checked(not v["nuke"])
         self.replace_mode.set_checked(v["nuke"])
+
+        zen_ok = self.zen_state == "ok"
+        # Until Zen is found nothing can run, so nothing can be picked either
+        for chip in self.chips.values():
+            chip.setEnabled(zen_ok)
+        for chip in self.locked_chips:
+            chip.setEnabled(zen_ok)
+        for mode in (self.add_mode, self.replace_mode):
+            mode.setEnabled(zen_ok)
+            mode.fade.setOpacity(1.0 if zen_ok else 0.45)
+        missing = self.zen_state == "missing"
+        self.zen_banner_title.setText("Zen isn't on this Mac yet" if missing else "This folder has no Zen profile")
+        self.zen_banner_text.setText(
+            "Install Zen and open it once so it creates a profile, then come back. Or point to a profile "
+            "folder if Zen keeps it somewhere else." if missing else
+            "Pick a Zen profile folder, or Zen's data folder with profiles.ini.")
+        self.download_zen.setVisible(missing)
 
         look = self.look_mode
         first = True
@@ -1732,7 +1799,15 @@ class MainWindow(QMainWindow):
         if look:
             title = "Zen keeps its tabs and spaces"
             text, color = (" · ".join(parts), MUTED) if parts else ("Pick something to apply.", WARN)
+        title_color = TEXT
+        if not zen_ok:
+            title_color = WARN if missing else DANGER
+            title, color = ("Zen isn't set up yet", MUTED) if missing else ("No Zen profile in this folder", MUTED)
+            text = ("Install Zen and open it once, then come back — or choose its profile folder in the Zen card "
+                    "above." if missing else
+                    "Choose a Zen profile folder, or Zen's data folder with profiles.ini, in the Zen card above.")
         if self.confirming:
+            title_color = TEXT
             title = f"Replace everything in {self.zen_target()}?"
             text = ("Tabs, folders, bookmarks, workspaces and containers Arc doesn't have will be removed. "
                     "You can roll back afterwards.")
@@ -1751,11 +1826,15 @@ class MainWindow(QMainWindow):
         elif self.finished:
             title = "Couldn't apply the look" if self.run_look else "Migration stopped"
             text, color = "Roll back, or fix the problem and start over.", DANGER
+        if self.running or self.finished:
+            title_color = TEXT
         self.summary_title.setText(title)
+        self.summary_title.setStyleSheet(f"font-weight: 600; color: {title_color};")
         self.summary_text.setText(text)
         self.summary_text.setStyleSheet(f"color: {color}; font-size: 12px;")
 
         idle = not self.running and not self.finished
+        self.zen_banner.setVisible(idle and not zen_ok)
         # In "just the look" the spaces matter only for their icons and colors
         spaces_matter = not look or not self.arc_ok or v["workspace_icons"] or v["workspace_themes"]
         self.aside.setEnabled(idle and spaces_matter)
@@ -1771,7 +1850,7 @@ class MainWindow(QMainWindow):
         self.restart_button.setVisible(finished)
         self.exit_button.setVisible(finished)
         self.go_button.setVisible(idle)
-        self.go_button.setEnabled(bool(parts) if look else bool(chosen))
+        self.go_button.setEnabled(zen_ok and (bool(parts) if look else bool(chosen)))
         self.go_button.setIcon(QIcon(svg_pixmap(SPARKLES_SVG, "#ffffff", 16, max(2.0, self.devicePixelRatioF())))
                                if look else QIcon())
         if look:
@@ -2130,6 +2209,26 @@ class MainWindow(QMainWindow):
             widget.setVisible(False)
         self.refresh()
         QTimer.singleShot(0, self.place_result)
+
+    def changeEvent(self, event) -> None:
+        # Back in the window after installing Zen or Arc: look for them again
+        if event.type() == QEvent.ActivationChange and self.isActiveWindow() and not self.running and not self.finished:
+            QTimer.singleShot(0, self.rediscover_profiles)
+        super().changeEvent(event)
+
+    def rediscover_profiles(self) -> None:
+        """Fill in Zen or Arc when none was found before; a folder picked by hand is left alone."""
+        for combo, missing, discover in ((self.zen_combo, self.zen_state == "missing", discover_zen_profiles),
+                                         (self.arc_combo, not self.arc_ok and not self.arc_combo.currentText(),
+                                          discover_arc_profiles)):
+            if not missing:
+                continue
+            found = discover()
+            if found:
+                combo.clear()
+                for profile in found:
+                    combo.addItem(format_path(profile))
+                combo.setEditText(format_path(found[0]))
 
     def closeEvent(self, event) -> None:
         if self.running or self.rollback_state == "running":
