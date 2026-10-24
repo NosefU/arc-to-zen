@@ -135,6 +135,10 @@ QPushButton#Primary {{ background: {ACCENT}; border-color: {ACCENT}; color: #fff
 QPushButton#Primary:hover {{ background: #3f33d0; }}
 QPushButton#Primary:disabled {{ background: #a9a3f0; border-color: #a9a3f0; color: #ffffff; }}
 QPushButton#PrimaryDanger {{ background: {DANGER}; border-color: {DANGER}; color: #ffffff; }}
+QPushButton#Accent {{ border: 1.5px solid {ACCENT}; color: {ACCENT_TEXT}; }}
+QPushButton#Accent:hover {{ background: {ACCENT_SOFT}; }}
+QPushButton#Danger {{ border: 1.5px solid {DANGER}; color: {DANGER}; }}
+QPushButton#Danger:hover {{ background: {DANGER_SOFT}; }}
 QPushButton#Link {{ background: transparent; border: 0; color: {ACCENT_TEXT}; padding: 4px 8px; }}
 QPushButton#Link:hover {{ color: #2a2190; }}
 QPushButton#Chip {{ background: transparent; border: 1px solid {LINE}; border-radius: 15px;
@@ -1148,6 +1152,12 @@ class MainWindow(QMainWindow):
         self.result_action = QPushButton()
         self.result_action.clicked.connect(self.result_action_clicked)
         actions.addWidget(self.result_action)
+        # Exit closes the window, which deletes the backup
+        self.result_exit = QPushButton("Exit")
+        self.result_exit.setObjectName("PrimaryDanger")
+        self.result_exit.clicked.connect(self.close)
+        self.result_exit.setVisible(False)
+        actions.addWidget(self.result_exit)
         self.steps_toggle = self._link("", self.toggle_steps)
         actions.addWidget(self.steps_toggle)
         actions.addStretch(1)
@@ -1236,13 +1246,18 @@ class MainWindow(QMainWindow):
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.cancel_confirm)
         self.restart_button = QPushButton("Start over")
+        self.restart_button.setObjectName("Accent")
         self.restart_button.clicked.connect(self.reset_run)
+        self.exit_button = QPushButton("Exit")
+        self.exit_button.setObjectName("Danger")
+        self.exit_button.clicked.connect(self.close)
         self.go_button = QPushButton()
         self.go_button.setObjectName("Primary")
         self.go_button.setDefault(True)
         self.go_button.clicked.connect(self.go_clicked)
         layout.addWidget(self.cancel_button)
         layout.addWidget(self.restart_button)
+        layout.addWidget(self.exit_button)
         layout.addWidget(self.go_button)
         return footer
 
@@ -1526,8 +1541,10 @@ class MainWindow(QMainWindow):
         self.add_mode.setVisible(idle and not self.confirming)
         self.replace_mode.setVisible(idle and not self.confirming)
         self.cancel_button.setVisible(idle and self.confirming)
-        # After a rollback Start over sits on the result screen itself
-        self.restart_button.setVisible(self.finished and self.rollback_state not in ("running", "done"))
+        # After a rollback Start over and Exit sit on the result screen itself
+        finished = self.finished and self.rollback_state not in ("running", "done")
+        self.restart_button.setVisible(finished)
+        self.exit_button.setVisible(finished)
         self.go_button.setVisible(idle)
         self.go_button.setEnabled(bool(chosen))
         if self.confirming:
@@ -1772,6 +1789,7 @@ class MainWindow(QMainWindow):
         self.result_action.setObjectName("Primary" if ok else "" if can_roll_back else "PrimaryDanger")
         self.result_action.setText("Open Zen" if ok else "Show log")
         self.result_action.setVisible(True)
+        self.result_exit.setVisible(False)
         restyle(self.result_action)
         self.steps_toggle.setVisible(ok)
         # A failure shows every step at once; a success keeps them one click away
@@ -1849,6 +1867,7 @@ class MainWindow(QMainWindow):
             self.result_action.setObjectName("Primary")
             restyle(self.result_action)
             self.result_action.setVisible(True)
+            self.result_exit.setVisible(True)
         else:
             self.rollback_state = "failed"
             self.show_rollback_state("!", DANGER, "Rollback failed",
@@ -1865,7 +1884,7 @@ class MainWindow(QMainWindow):
         self.result_badge.setVisible(False)
         self.result_title.setText(title)
         self.result_text.setText(text)
-        for widget in (self.result_stats, self.result_notes, self.result_rollback, self.result_action,
+        for widget in (self.result_stats, self.result_notes, self.result_rollback, self.result_action, self.result_exit,
                        self.steps_toggle, self.result_hint, self.rollback_link, self.rollback_confirm,
                        self.steps_card, self.log):
             widget.setVisible(False)
