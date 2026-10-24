@@ -54,6 +54,10 @@ first and can be undone with `--rollback <backup folder>`.
 
 - `src/arc2zen/migration.py`
   - Shared migration orchestration used by both CLI and GUI.
+  - "Just the look": `look_only()` cuts options down to `LOOK_KEYS` with
+    `import_tabs=False`, so no tabs, folders or workspaces are imported; without
+    Arc it also drops the space icons and colors (`ARC_LOOK_KEYS`) and sets
+    `arc_defaults`. Used by `--look-only` and the GUI preset.
   - Owns the ordered step list for core import, favicons, folder states,
     workspace icons, and workspace themes.
   - Filters the synthetic `Orphaned` workspace by default unless explicitly
@@ -71,6 +75,10 @@ first and can be undone with `--rollback <backup folder>`.
     the left, presets and option chips on the right, a summary, the add/replace
     choice and the Migrate button in one footer row; chips map one-to-one to
     `MigrationOptions` fields (`CATEGORIES`, `SAFETY`, presets in `PRESETS`).
+  - The "Just the look" preset (`look_mode`) shows only `LOOK_ROWS`, hides the
+    add/replace choice and restyles only the checked spaces Zen already has
+    (`zen_space_names()`). Without an Arc folder it is forced and the other
+    presets are unavailable; once Arc is found, Arc as it was is back.
   - Space rows come from `space_overview.arc_space_overview()`; built-in
     Arc icons are drawn from the installed Zen's `omni.ja`
     (`zen_assets.zen_selectable_icon_svg`).
@@ -221,6 +229,7 @@ first and can be undone with `--rollback <backup folder>`.
 - `src/arc2zen/zen_settings.py`, `src/arc2zen/zen_prefs.py`
   - Map Arc's sidebar mode and top bar setting to Zen compact mode and toolbar
     layout, add the drag-to-split thresholds, and write them to `prefs.js`.
+    With `arc_defaults` (no Arc) they use `ARC_DEFAULT_LAYOUT`, a fresh Arc's.
 
 - `src/arc2zen/languages.py`
   - Maps Arc's `Default` profile `Preferences` (`intl.accept_languages`,

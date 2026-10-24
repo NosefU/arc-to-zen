@@ -2,7 +2,33 @@
 
 ![Arc to Zen full migration](docs/full-migration.png)
 
-Migrate all Arc workspaces data into Zen.
+Migrate all Arc workspaces data into Zen — or just make Zen look like Arc.
+
+## Just want Zen to look like Arc?
+
+You don't have to migrate anything. **Just the look** ✨ only restyles Zen and
+leaves your tabs, spaces, sign-ins and everything else in it as they are:
+
+- 🎨 the bundled [Arc Look mod](#zen-settings): a compact top bar, an Arc-like
+  floating address bar, Arc-style Peek
+- 🧭 Arc's layout: the sidebar shown or hidden and the address in the sidebar or
+  in a top bar, as in your Arc
+- ✂️ easier tab drag-to-split
+- 🪐 Arc's icons and colors for Zen spaces named like your Arc spaces; Zen
+  spaces Arc doesn't have are left alone
+
+It works without Arc too, for example if you never used it or already removed
+it: the layout then follows a fresh Arc (sidebar shown, address in the sidebar)
+and space icons and colors are skipped.
+
+In the app pick **Just the look** and press **Apply the look**. From the
+command line:
+
+```bash
+python cli.py --look-only
+```
+
+Like a migration, it backs up the Zen profile first and can be rolled back.
 
 ## Download
 
@@ -49,9 +75,12 @@ Everything is on one screen:
   space's icon, colors, tab and folder counts, and the container it will open
   in.
 - **What comes along** (right): one click on a preset, **Just tabs** (spaces,
-  tabs and how they look) or **Arc as it was** (also sign-ins, boosts,
-  Air Traffic Control and an Arc-like Zen), or turn single items on and off,
-  which makes it **Custom**. Hover an item for what it does. **Safety** holds
+  tabs and how they look), **Arc as it was** (also sign-ins, boosts,
+  Air Traffic Control and an Arc-like Zen) or **Just the look** (no migration:
+  only the Arc look for Zen, see above), or turn single items on and off,
+  which makes it **Custom**. Arc as it was is picked when the app opens; without
+  Arc on the Mac only Just the look is available. In Just the look the spaces
+  list marks which spaces Zen has: only those get their Arc icon and colors. Hover an item for what it does. **Safety** holds
   closing Zen automatically and the `Orphaned` workspace. Only the
   Zen running the target profile is closed; Zen windows of other profiles keep
   running.
@@ -141,6 +170,9 @@ Useful switches:
   workspaces are kept
 - `--include-orphaned` creates a separate workspace for unmatched Essentials
 - `--rollback BACKUP` puts the Zen profile back from a run's backup folder
+- `--look-only` only makes Zen look like Arc (see
+  [Just want Zen to look like Arc?](#just-want-zen-to-look-like-arc)): no tabs,
+  spaces or sign-ins are touched; the `--no-…` switches of the look still apply
 - `--no-favicons`
 - `--no-folder-states`
 - `--no-workspace-icons`
@@ -251,6 +283,8 @@ are not migrated.
 - **Toolbars**: Arc's URL in the top bar (`topBarURLEnabled` in
   `~/Library/Preferences/company.thebrowser.Browser.plist`) selects Zen's
   multiple toolbars; otherwise Zen uses a single toolbar.
+- Without Arc on the Mac (Just the look, `--look-only`) the sidebar and the
+  toolbars follow a fresh Arc: compact mode off and a single toolbar.
 - **Drag-to-split**: dropping a tab onto another splits the view over 70% of
   the tab height after 250 ms instead of Zen's 20% and 500 ms.
 

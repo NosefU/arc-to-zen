@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, replace
 from pathlib import Path
 from typing import Callable, Iterable
 
@@ -21,7 +21,7 @@ from .passwords import migrate_passwords
 from .extract import ArcPinnedTabExtractor
 from .favicons import migrate_favicons
 from .folder_states import sync_folder_states
-from .profile_paths import is_zen_profile_in_use, resolve_zen_profile
+from .profile_paths import is_zen_profile_in_use, resolve_arc_profile, resolve_zen_profile
 from .sessions import import_arc_export
 from .snapshot import Snapshot, set_active_snapshot
 from .tab_repair import repair_broken_tabs
@@ -65,6 +65,36 @@ class MigrationOptions:
     auto_close_zen: bool = True
     # Arc space names to migrate; None migrates every space.
     spaces: tuple[str, ...] | None = None
+    # Off for "just the look": no tabs, folders or workspaces are imported
+    import_tabs: bool = True
+    # Without Arc on this Mac the layout takes Arc's defaults instead of its settings
+    arc_defaults: bool = False
+
+
+# What "just the look" applies: Arc's space icons and colors, the Arc Look mod and Arc's layout
+LOOK_KEYS = ("workspace_icons", "workspace_themes", "default_theme",
+             "arc_look_mod", "sidebar_mode", "toolbar_layout", "split_drag")
+# Space icons and colors come from Arc; the rest works without it
+ARC_LOOK_KEYS = ("workspace_icons", "workspace_themes", "default_theme")
+
+
+def arc_found(arc_profile: str | Path | None) -> bool:
+    try:
+        resolve_arc_profile(arc_profile)
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def look_only(options: MigrationOptions) -> MigrationOptions:
+    """The same run cut down to how Zen looks: tabs, spaces and sign-ins in Zen stay as they are."""
+    keep = {"auto_close_zen", *LOOK_KEYS}
+    changes = {f.name: False for f in fields(options) if isinstance(getattr(options, f.name), bool) and f.name not in keep}
+    if not arc_found(options.arc_profile):
+        changes.update({key: False for key in ARC_LOOK_KEYS})
+        changes["arc_profile"] = None
+        changes["arc_defaults"] = True
+    return replace(options, **changes)
 
 
 @dataclass(frozen=True)
@@ -222,7 +252,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
     Steps make no backups of their own (create_backups=False): the run backs up
     the whole profile before the first step.
     """
-    steps = [
+    steps = [] if not options.import_tabs else [
         MigrationStep(
             "Extract Arc sidebar data",
             lambda: bool(
@@ -338,6 +368,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     sidebar=options.sidebar_mode,
                     toolbar=options.toolbar_layout,
                     split_drag=options.split_drag,
+                    arc_defaults=options.arc_defaults,
                 ),
             ),
         ),

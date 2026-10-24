@@ -25,6 +25,13 @@ SPLIT_DRAG_PREFS = {
 }
 
 
+# How a fresh Arc looks: the sidebar shown, the URL in it rather than in a top bar
+ARC_DEFAULT_LAYOUT = {
+    "zen.view.compact.enable-at-startup": False,
+    "zen.view.use-single-toolbar": True,
+}
+
+
 def arc_sidebar_mode(arc_profile: str | Path | None = None) -> Optional[str]:
     """Arc's sidebar mode of the last window, e.g. "noChrome" when the sidebar is hidden."""
     try:
@@ -70,16 +77,22 @@ def apply_zen_settings(
     sidebar: bool = True,
     toolbar: bool = True,
     split_drag: bool = True,
+    arc_defaults: bool = False,
 ) -> bool:
+    """With arc_defaults (no Arc on this Mac) the sidebar and toolbars take Arc's defaults."""
     profile = resolve_zen_profile(zen_profile)
     prefs: Dict[str, Any] = {}
+    if arc_defaults:
+        logger.info("   No Arc here; using Arc's default layout")
     if sidebar:
-        found = sidebar_prefs(arc_profile)
+        name = "zen.view.compact.enable-at-startup"
+        found = {name: ARC_DEFAULT_LAYOUT[name]} if arc_defaults else sidebar_prefs(arc_profile)
         prefs.update(found)
         if not found:
             logger.info("   Arc sidebar mode not found; Zen compact mode left as is")
     if toolbar:
-        found = toolbar_prefs(arc_profile)
+        name = "zen.view.use-single-toolbar"
+        found = {name: ARC_DEFAULT_LAYOUT[name]} if arc_defaults else toolbar_prefs(arc_profile)
         prefs.update(found)
         if not found:
             logger.info("   Arc top bar setting not found; Zen toolbar layout left as is")

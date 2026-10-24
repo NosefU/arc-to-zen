@@ -7,7 +7,14 @@ import argparse
 import logging
 from pathlib import Path
 
-from .migration import MigrationOptions, ensure_zen_profile_free, list_arc_spaces, nuke_zen_profile_only, run_migration
+from .migration import (
+    MigrationOptions,
+    ensure_zen_profile_free,
+    list_arc_spaces,
+    look_only,
+    nuke_zen_profile_only,
+    run_migration,
+)
 from .snapshot import rollback, snapshot_profile
 
 
@@ -36,6 +43,13 @@ def parse_args() -> argparse.Namespace:
         "--nuke-only",
         action="store_true",
         help="Only clear the selected Zen profile; do not import Arc data.",
+    )
+    parser.add_argument(
+        "--look-only",
+        action="store_true",
+        help="Only make Zen look like Arc: Arc Look mod, Arc's sidebar and toolbars, drag-to-split and, "
+        "for Zen spaces named like Arc spaces, their icons and colors. Tabs, spaces and sign-ins stay "
+        "as they are. Works without Arc, using Arc's default layout.",
     )
     parser.add_argument(
         "--include-orphaned",
@@ -197,6 +211,8 @@ def main() -> int:
         skip_orphaned=not args.include_orphaned,
         spaces=tuple(args.spaces) if args.spaces else None,
     )
+    if args.look_only:
+        options = look_only(options)
     try:
         run_migration(options, on_snapshot=backups.append)
     except RuntimeError as exc:
@@ -211,7 +227,7 @@ def print_rollback_hint(backups: list[Path]) -> None:
     if backups:
         logging.info(
             f"\nThe Zen profile was backed up to {backups[0]}.\n"
-            f"To undo this migration: python cli.py --rollback \"{backups[0]}\"\n"
+            f"To undo it: python cli.py --rollback \"{backups[0]}\"\n"
             "Delete that folder once Zen looks right."
         )
 

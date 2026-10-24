@@ -29,7 +29,7 @@ def main() -> int:
     home = str(Path.home())
     for combo in (window.arc_combo, window.zen_combo):
         combo.setEditText(combo.currentText().replace(home, "~", 1))
-    window.resize(1040, 760)
+    window.resize(1180, 760)
     window.show()
     app.processEvents()
 

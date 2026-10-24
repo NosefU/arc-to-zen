@@ -49,7 +49,7 @@ except ImportError as exc:
     print('Install dependencies with: pip install -e ".[desktop]"')
     raise
 
-from .migration import MigrationOptions, migration_steps, run_migration
+from .migration import ARC_LOOK_KEYS, MigrationOptions, look_only, migration_steps, run_migration
 from .profile_paths import (
     discover_arc_profiles,
     discover_zen_profiles,
@@ -58,6 +58,7 @@ from .profile_paths import (
     resolve_zen_profile,
     zen_profile_lock_files,
 )
+from .sessions import read_mozilla_lz4
 from .snapshot import discard, rollback, snapshot_profile
 from .space_overview import SpaceOverview, arc_space_overview
 from .zen_assets import zen_selectable_icon_svg
@@ -116,8 +117,10 @@ QFrame#Endpoint:hover, QFrame#Endpoint:focus {{ border-color: {ACCENT}; }}
 QFrame#SpaceRow {{ background: transparent; border: 1.5px solid transparent; border-radius: 10px; }}
 QFrame#SpaceRow[checked="true"] {{ background: {ACCENT_SOFT}; border-color: {ACCENT}; }}
 QFrame#SpaceRow:focus {{ border-color: {ACCENT}; }}
+QFrame#SpaceRow:disabled {{ background: transparent; border-color: transparent; }}
 QFrame#Preset {{ background: {WINDOW}; border: 1.5px solid {LINE}; border-radius: 12px; }}
 QFrame#Preset[checked="true"] {{ background: {ACCENT_SOFT}; border-color: {ACCENT}; }}
+QFrame#Preset:disabled {{ background: transparent; }}
 QFrame#Preset:focus {{ border-color: {ACCENT}; }}
 QFrame#Mode {{ background: transparent; border: 1.5px solid {LINE}; border-radius: 10px; }}
 QFrame#Mode[checked="true"] {{ background: {ACCENT_SOFT}; border-color: {ACCENT}; }}
@@ -451,6 +454,32 @@ def svg_pixmap(svg: bytes, color: str, size: int, ratio: float) -> QPixmap:
     return pixmap
 
 
+# The mark of "just the look": two sparkles
+SPARKLES_SVG = (
+    b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="context-fill"'
+    b' stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+    b'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>'
+    b'<path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"/></svg>'
+)
+
+
+# The always-moved core import: a padlock instead of a tick
+LOCK_SVG = (
+    b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="context-fill"'
+    b' stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">'
+    b'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'
+)
+
+
+def zen_space_names(profile: Path) -> set[str]:
+    """Names of the spaces a Zen profile has; "just the look" restyles only these."""
+    try:
+        spaces = read_mozilla_lz4(profile / "zen-sessions.jsonlz4").get("spaces") or []
+    except Exception:
+        return set()
+    return {space.get("name") for space in spaces if space.get("name")}
+
+
 class FlowLayout(QLayout):
     """Lays widgets out left to right and wraps them onto new lines, like inline text."""
 
@@ -581,6 +610,8 @@ class SpaceRow(Clickable):
     def __init__(self, space: SpaceOverview, checked: bool, parent=None):
         super().__init__("SpaceRow", f"Space {space.name}", parent)
         self.space = space
+        # In "just the look": whether Zen has a space of this name; None otherwise
+        self.in_zen: Optional[bool] = None
 
         badge = QLabel()
         badge.setFixedSize(36, 36)
@@ -604,11 +635,12 @@ class SpaceRow(Clickable):
         else:
             badge.setText(space.name[:1].upper())
 
-        name = label(space.name)
+        self.name = name = label(space.name)
         name.setStyleSheet("font-weight: 600;")
-        counts = f"{count(space.tabs, 'tab')} · {count(space.folders, 'folder')}"
+        self.counts_text = f"{count(space.tabs, 'tab')} · {count(space.folders, 'folder')}"
         if space.container:
-            counts += f" · {space.container} container"
+            self.counts_text += f" · {space.container} container"
+        self.counts = label(self.counts_text, "small", wrap=True)
         self.check = QLabel()
         self.check.setFixedSize(20, 20)
         self.check.setAlignment(Qt.AlignCenter)
@@ -617,18 +649,33 @@ class SpaceRow(Clickable):
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(12)
         layout.addWidget(badge)
-        layout.addLayout(text_column(name, label(counts, "small", wrap=True)), 1)
+        layout.addLayout(text_column(name, self.counts), 1)
         layout.addWidget(self.check)
         self.clicked.connect(self.toggle)
         self.set_checked(checked)
 
     def set_checked(self, checked: bool) -> None:
-        self.check.setText("✓" if checked else "")
+        # A space Zen lacks shows unchecked but keeps its choice for migrating
+        shown = checked and self.in_zen is not False
+        self.check.setText("✓" if shown else "")
         self.check.setStyleSheet(
             f"background: {ACCENT}; color: #ffffff; border-radius: 6px; font-weight: 700;"
-            if checked else f"background: transparent; border: 1.5px solid {OFF}; border-radius: 6px;"
+            if shown else f"background: transparent; border: 1.5px solid {OFF}; border-radius: 6px;"
         )
         super().set_checked(checked)
+
+    def set_look(self, in_zen: Optional[bool]) -> None:
+        """In "just the look" tell whether Zen has this space; one it lacks is skipped."""
+        self.in_zen = in_zen
+        if in_zen is None:
+            self.counts.setText(self.counts_text)
+        else:
+            self.counts.setText("In Zen · gets its Arc icon and colors" if in_zen else "Not in Zen · skipped")
+        self.setEnabled(in_zen is not False)
+        grey = f" color: {OFF};" if in_zen is False else ""
+        self.name.setStyleSheet("font-weight: 600;" + grey)
+        self.counts.setStyleSheet(grey)
+        self.set_checked(self.is_checked())
 
     def toggle(self) -> None:
         self.set_checked(not self.is_checked())
@@ -638,27 +685,44 @@ class SpaceRow(Clickable):
 class PresetCard(Clickable):
     """One of the ready-made selections: Just tabs, Arc as it was, Custom."""
 
-    def __init__(self, title: str, hint: str, recommended: bool):
+    def __init__(self, title: str, hint: str, recommended: bool, look: bool = False):
         super().__init__("Preset", title)
+        self.hint = hint
         heading = QHBoxLayout()
-        heading.setSpacing(8)
-        title_label = label(title)
-        title_label.setStyleSheet("font-size: 15px; font-weight: 600;")
-        heading.addWidget(title_label, 1)
+        heading.setSpacing(6)
+        if look:
+            sparkles = QLabel()
+            sparkles.setPixmap(svg_pixmap(SPARKLES_SVG, ACCENT_TEXT, 16, max(2.0, self.devicePixelRatioF())))
+            heading.addWidget(sparkles)
+        self.title_label = label(title)
+        self.title_label.setStyleSheet("font-size: 15px; font-weight: 600;")
+        heading.addWidget(self.title_label, 1)
+        badge_style = "border-radius: 9px; padding: 2px 8px; font-size: 11px; font-weight: 600;"
         if recommended:
             badge = label("Recommended")
-            badge.setStyleSheet(
-                f"background: {OK_SOFT}; color: {OK}; border-radius: 9px; padding: 2px 8px;"
-                " font-size: 11px; font-weight: 600;"
-            )
+            badge.setStyleSheet(f"background: {OK_SOFT}; color: {OK}; {badge_style}")
             heading.addWidget(badge)
+        self.hint_label = label(hint, "small", wrap=True)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 12, 14, 12)
         layout.setSpacing(4)
         layout.addLayout(heading)
-        layout.addWidget(label(hint, "small", wrap=True))
+        if look:
+            # Under the title, so the four cards fit side by side
+            badge = label("No migration")
+            badge.setStyleSheet(f"background: {ACCENT_SOFT}; color: {ACCENT_TEXT}; {badge_style}")
+            layout.addWidget(badge, 0, Qt.AlignLeft)
+        layout.addWidget(self.hint_label)
         layout.addStretch(1)
         self.setMinimumHeight(76)
+
+    def set_available(self, available: bool) -> None:
+        """Without Arc only "just the look" can run."""
+        self.setEnabled(available)
+        self.hint_label.setText(self.hint if available else "Needs Arc on this Mac.")
+        grey = "" if available else f" color: {OFF};"
+        self.title_label.setStyleSheet("font-size: 15px; font-weight: 600;" + grey)
+        self.hint_label.setStyleSheet(grey)
 
 
 class ModeCard(Clickable):
@@ -837,8 +901,13 @@ TABS_ONLY = {"favicons", "folder_states", "repair_tabs", "workspace_icons", "wor
 PRESETS = [
     ("tabs", "Just tabs", "Spaces, tabs and how they look. Nothing else in Zen changes.", False),
     ("all", "Arc as it was", "Plus sign-ins, boosts, routing and an Arc-like Zen.", True),
+    ("look", "Just the look", "Make Zen look like Arc. Your tabs and spaces in Zen stay.", False),
     ("custom", "Custom", "Turn items on and off below.", False),
 ]
+# The rows "just the look" shows; the others don't apply to it
+LOOK_ROWS = ("Look", "Zen setup", "Safety")
+ZEN_SETUP = [("arc_look_mod", "Arc Look mod"), ("sidebar_mode", "sidebar"), ("toolbar_layout", "toolbars"),
+             ("split_drag", "drag-to-split")]
 
 
 def preset_values(preset: str) -> Dict[str, bool]:
@@ -860,6 +929,17 @@ class MainWindow(QMainWindow):
         self.choices.update({c.key: c for c in SAFETY})
         self.space_rows: List[SpaceRow] = []
         self.unchecked_spaces: set[str] = set()
+        # "Just the look": only Look and Zen setup are applied, no tabs are imported.
+        # Without Arc it is the only choice; arc_forced remembers it was chosen for the user.
+        self.look_mode = False
+        # Custom picked by hand: it stays Custom even while the items match a preset
+        self.custom_mode = False
+        self.arc_ok = False
+        self.arc_forced = False
+        self.zen_spaces: set[str] = set()
+        # What the last run was, for its result screen
+        self.run_look = False
+        self.run_look_spaces = 0
         self.step_rows: Dict[str, StepRow] = {}
         self.current_step_title = ""
         self.step_notes: Dict[str, str] = {}
@@ -876,7 +956,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Arc to Zen")
         self.setWindowIcon(QIcon(str(resource_path("assets", "app-icon.png"))))
-        self.resize(1040, 760)
+        self.resize(1180, 760)
         self.setMinimumSize(940, 640)
 
         # The combos hold the chosen paths; the header endpoints show and change them
@@ -1000,17 +1080,20 @@ class MainWindow(QMainWindow):
         heading = QHBoxLayout()
         self.spaces_caption = label("", "caps")
         heading.addWidget(self.spaces_caption, 1)
-        heading.addWidget(self._link("All", lambda: self.set_all_spaces(True)))
-        heading.addWidget(self._link("None", lambda: self.set_all_spaces(False)))
+        self.all_link = self._link("All", lambda: self.set_all_spaces(True))
+        self.none_link = self._link("None", lambda: self.set_all_spaces(False))
+        heading.addWidget(self.all_link)
+        heading.addWidget(self.none_link)
         layout.addLayout(heading)
         self.spaces_list = QVBoxLayout()
         self.spaces_list.setSpacing(4)
         layout.addLayout(self.spaces_list)
         self.spaces_message = label("", "muted", wrap=True)
         layout.addWidget(self.spaces_message)
-        layout.addWidget(label(
-            "Each space opens in a container named after its Arc profile. "
-            "Unchecked spaces stay as they are in Zen.", "small", wrap=True))
+        self.choose_arc_link = self._link("Choose Arc's folder…", self.browse_arc)
+        layout.addWidget(self.choose_arc_link, 0, Qt.AlignLeft)
+        self.spaces_note = label("", "small", wrap=True)
+        layout.addWidget(self.spaces_note)
         layout.addStretch(1)
 
         outer = QVBoxLayout(aside)
@@ -1029,8 +1112,9 @@ class MainWindow(QMainWindow):
             chip.clicked.connect(lambda checked, key=choice.key: self.set_value(key, checked))
             self.chips[choice.key] = chip
         else:
-            # Always moved: it stays on and only explains itself
-            chip.setText("✓  " + choice.label)
+            # Always moved: it stays on, shows a padlock and only explains itself
+            chip.setText(" " + choice.label)
+            chip.setIcon(QIcon(svg_pixmap(LOCK_SVG, ACCENT_TEXT, 12, max(2.0, self.devicePixelRatioF()))))
             chip.setChecked(True)
             chip.clicked.connect(lambda: chip.setChecked(True))
         return chip
@@ -1069,14 +1153,24 @@ class MainWindow(QMainWindow):
         presets.setSpacing(10)
         self.preset_cards: Dict[str, PresetCard] = {}
         for key, title, hint, recommended in PRESETS:
-            card = PresetCard(title, hint, recommended)
-            if key == "custom":
-                card.setCursor(Qt.ArrowCursor)
-            else:
-                card.clicked.connect(lambda k=key: self.apply_preset(k))
+            card = PresetCard(title, hint, recommended, look=key == "look")
+            card.clicked.connect(lambda k=key: self.apply_preset(k))
             self.preset_cards[key] = card
             presets.addWidget(card, 1)
         layout.addLayout(presets)
+
+        self.look_note = frame("Notes")
+        note = QHBoxLayout(self.look_note)
+        note.setContentsMargins(14, 12, 14, 12)
+        note.setSpacing(10)
+        icon = QLabel("i")
+        icon.setFixedSize(18, 18)
+        icon.setAlignment(Qt.AlignCenter)
+        icon.setStyleSheet(NOTE_ICON.replace("10px", "9px").replace("12px", "11px"))
+        note.addWidget(icon, 0, Qt.AlignTop)
+        self.look_note_text = label("", wrap=True)
+        note.addWidget(self.look_note_text, 1)
+        layout.addWidget(self.look_note)
 
         self.chips: Dict[str, QPushButton] = {}
         self.notes: List[tuple[QLabel, tuple]] = []
@@ -1084,14 +1178,18 @@ class MainWindow(QMainWindow):
         rows = QVBoxLayout(card)
         rows.setContentsMargins(0, 0, 0, 0)
         rows.setSpacing(0)
-        for index, (title, choices, note, note_keys) in enumerate(CATEGORIES):
-            if index:
-                rows.addWidget(divider())
-            rows.addWidget(self._category_row(title, choices, note, note_keys))
-        rows.addWidget(divider())
-        rows.addWidget(self._category_row("Safety", SAFETY, "", ()))
+        # Each row with the divider above it, so "just the look" can hide rows
+        self.category_rows: List[tuple[str, Optional[QFrame], QWidget]] = []
+        for index, (title, choices, note, note_keys) in enumerate(CATEGORIES + [("Safety", SAFETY, "", ())]):
+            line = divider() if index else None
+            if line:
+                rows.addWidget(line)
+            row = self._category_row(title, choices, note, note_keys)
+            rows.addWidget(row)
+            self.category_rows.append((title, line, row))
         layout.addWidget(card)
-        layout.addWidget(label("Hover an item for details. Changing any item switches to Custom.", "small", wrap=True))
+        self.choices_hint = label("", "small", wrap=True)
+        layout.addWidget(self.choices_hint)
         layout.addStretch(1)
         return page
 
@@ -1267,10 +1365,16 @@ class MainWindow(QMainWindow):
     # ----- state ----------------------------------------------------------
 
     def enabled(self, key: str) -> bool:
+        if key in ARC_LOOK_KEYS and not self.arc_ok:
+            return False
         depends_on = self.choices[key].depends_on
         return not depends_on or self.values[depends_on]
 
     def preset(self) -> str:
+        if self.look_mode:
+            return "look"
+        if self.custom_mode:
+            return "custom"
         for key in ("all", "tabs"):
             values = preset_values(key)
             if all(self.values[k] == values[k] for k in PRESET_KEYS):
@@ -1278,8 +1382,30 @@ class MainWindow(QMainWindow):
         return "custom"
 
     def apply_preset(self, preset: str) -> None:
-        self.values.update(preset_values(preset))
+        if preset == "look":
+            # The look as in "Arc as it was"; the other items stay as they were for migrating later
+            self.values.update({key: True for key in ARC_LOOK_KEYS + tuple(k for k, _ in ZEN_SETUP)})
+        elif not self.arc_ok:
+            return
+        elif preset != "custom":
+            self.values.update(preset_values(preset))
+        self.look_mode = preset == "look"
+        self.custom_mode = preset == "custom"
+        self.arc_forced = False
+        self.confirming = False
         self.refresh()
+
+    def look_spaces(self) -> List[SpaceOverview]:
+        """Checked spaces that Zen has: the ones "just the look" restyles."""
+        return [space for space in self.chosen_spaces() if space.name in self.zen_spaces]
+
+    def look_parts(self) -> List[str]:
+        v = self.values
+        parts = [name for key, name in ZEN_SETUP if v[key]]
+        spaces = self.look_spaces()
+        if self.arc_ok and spaces and (v["workspace_icons"] or v["workspace_themes"]):
+            parts.append(f"colors for {count(len(spaces), 'space')}")
+        return parts
 
     def set_value(self, key: str, value: bool) -> None:
         if key in self.choices and not self.enabled(key):
@@ -1331,9 +1457,21 @@ class MainWindow(QMainWindow):
         overview: List[SpaceOverview] = []
         self.spaces_message.setVisible(False)
         path = format_path(arc_profile)
-        if not is_arc_profile(arc_profile):
-            self.arc_endpoint.set_status("Arc", "No Arc data here", DANGER,
+        self.arc_ok = is_arc_profile(arc_profile)
+        # Without Arc only the look can be applied; once Arc is found, migrating is the default again
+        if not self.arc_ok and not self.look_mode:
+            self.look_mode = self.arc_forced = True
+        elif self.arc_ok and self.arc_forced:
+            self.look_mode = self.arc_forced = False
+        if not self.arc_ok:
+            missing = not self.arc_combo.currentText()
+            self.arc_endpoint.set_status("Arc", "Not found on this Mac" if missing else "No Arc data here",
+                                         OFF if missing else DANGER,
                                          f"{path}\nChoose the folder with StorableSidebar.json.")
+            self.spaces_message.setText(
+                "Arc isn't here. There's nothing to migrate, but Zen can still look like Arc. "
+                "Space icons and colors need Arc; everything else works without it.")
+            self.spaces_message.setVisible(True)
         else:
             try:
                 overview = arc_space_overview(arc_profile, include_orphaned=not self.values["skip_orphaned"])
@@ -1364,10 +1502,12 @@ class MainWindow(QMainWindow):
         try:
             profile = resolve_zen_profile(text)
         except Exception:
+            self.zen_spaces = set()
             self.zen_endpoint.set_status("Zen", "Not a Zen profile", DANGER,
                                          f"{text}\nChoose a profile folder or Zen's data folder.")
         else:
             title = f"Zen · {profile.name}"
+            self.zen_spaces = zen_space_names(profile)
             if is_zen_profile_in_use(profile):
                 closing = "will be closed first" if self.values["auto_close_zen"] else "close it first"
                 self.zen_endpoint.set_status(title, f"Open in Zen: {closing}", WARN, format_path(profile))
@@ -1399,10 +1539,26 @@ class MainWindow(QMainWindow):
 
     def selected_config(self) -> MigrationOptions:
         arc_profile = Path(self.arc_combo.currentText()).expanduser()
+        v = self.values
+        if self.look_mode:
+            names = tuple(space.name for space in self.look_spaces())
+            colors = self.arc_ok and bool(names)
+            return look_only(MigrationOptions(
+                arc_profile=arc_profile if self.arc_ok else None,
+                zen_profile=resolve_zen_profile(self.zen_combo.currentText()),
+                workspace_icons=v["workspace_icons"] and colors,
+                workspace_themes=v["workspace_themes"] and colors,
+                default_theme=v["default_theme"] and v["workspace_themes"] and colors,
+                arc_look_mod=v["arc_look_mod"],
+                sidebar_mode=v["sidebar_mode"],
+                toolbar_layout=v["toolbar_layout"],
+                split_drag=v["split_drag"],
+                auto_close_zen=v["auto_close_zen"],
+                spaces=names,
+            ))
         if not is_arc_profile(arc_profile):
             raise ValueError(f"Arc profile must contain a valid StorableSidebar.json:\n{arc_profile}")
         zen_profile = resolve_zen_profile(self.zen_combo.currentText())
-        v = self.values
         return MigrationOptions(
             arc_profile=arc_profile,
             zen_profile=zen_profile,
@@ -1429,6 +1585,23 @@ class MainWindow(QMainWindow):
             auto_close_zen=v["auto_close_zen"],
             spaces=self.selected_spaces(),
         )
+
+    def look_result_text(self) -> str:
+        v = self.values
+        done = []
+        if v["arc_look_mod"]:
+            done.append("the Arc Look mod")
+        if v["sidebar_mode"] or v["toolbar_layout"]:
+            done.append("Arc's layout" if self.arc_ok else "Arc's default layout")
+        if v["split_drag"]:
+            done.append("easier drag-to-split")
+        text = ""
+        if done:
+            listed = done[0] if len(done) == 1 else ", ".join(done[:-1]) + " and " + done[-1]
+            text = f"{listed[0].upper()}{listed[1:]} {'is' if len(done) == 1 else 'are'} in place. "
+        if self.run_look_spaces:
+            text += f"{count(self.run_look_spaces, 'space')} got their Arc icons and colors. "
+        return text + "Your tabs, spaces and sign-ins weren't touched."
 
     def toggle_log(self) -> None:
         self.log.setVisible(not self.log.isVisible())
@@ -1490,7 +1663,11 @@ class MainWindow(QMainWindow):
             on = v[key] and enabled
             chip.setChecked(on)
             chip.setText(("✓  " if on else "+  ") + choice.label)
-            chip.setToolTip(choice.hint if enabled else "Turn on space colors first")
+            if enabled:
+                chip.setToolTip(choice.hint)
+            else:
+                chip.setToolTip("Needs Arc on this Mac" if key in ARC_LOOK_KEYS and not self.arc_ok
+                                else "Turn on space colors first")
             chip.setProperty("dimmed", "false" if enabled else "true")
             restyle(chip)
         for note, keys in self.notes:
@@ -1498,11 +1675,47 @@ class MainWindow(QMainWindow):
         preset = self.preset()
         for key, card in self.preset_cards.items():
             card.set_checked(key == preset)
+            card.set_available(self.arc_ok or key == "look")
         self.add_mode.set_checked(not v["nuke"])
         self.replace_mode.set_checked(v["nuke"])
 
+        look = self.look_mode
+        first = True
+        for title, line, row in self.category_rows:
+            shown = not look or title in LOOK_ROWS
+            row.setVisible(shown)
+            if line:
+                line.setVisible(shown and not first)
+            first = first and not shown
+        self.chips["skip_orphaned"].setVisible(not look)
+        self.look_note.setVisible(look)
+        self.look_note_text.setText(
+            "Your tabs, spaces and sign-ins in Zen stay as they are. Only how Zen looks changes. "
+            "Icons and colors go to Zen spaces named like your Arc spaces." if self.arc_ok else
+            "Your tabs, spaces and sign-ins in Zen stay as they are. Without Arc, the sidebar and toolbars "
+            "take Arc's defaults: the sidebar always shown, the address in it.")
+        for row in self.space_rows:
+            row.set_look(row.space.name in self.zen_spaces if look else None)
+        self.choose_arc_link.setVisible(not self.arc_ok)
+        self.all_link.setVisible(self.arc_ok)
+        self.none_link.setVisible(self.arc_ok)
+        self.choices_hint.setText("Hover an item for details." if look else
+                                  "Hover an item for details. Changing any item switches to Custom.")
+        self.spaces_note.setVisible(self.arc_ok)
+        self.spaces_note.setText(
+            "Zen spaces with the same name as in Arc get its icon and colors. Nothing is added or removed."
+            if look else
+            "Each space opens in a container named after its Arc profile. Unchecked spaces stay as they are in Zen.")
+
         chosen = self.chosen_spaces()
-        self.spaces_caption.setText(f"SPACES · {len(chosen)} OF {len(self.space_rows)}")
+        if not self.arc_ok:
+            self.spaces_caption.setText("SPACES")
+        elif look:
+            in_zen = sum(1 for row in self.space_rows if row.space.name in self.zen_spaces)
+            self.spaces_caption.setText(f"SPACES · {len(self.look_spaces())} OF {in_zen} IN ZEN" if in_zen
+                                        else "SPACES · NONE IN ZEN")
+        else:
+            self.spaces_caption.setText(f"SPACES · {len(chosen)} OF {len(self.space_rows)}")
         tabs = sum(space.tabs for space in chosen)
         folders = sum(space.folders for space in chosen)
         preset_name = {key: title for key, title, _, _ in PRESETS}[preset]
@@ -1511,13 +1724,18 @@ class MainWindow(QMainWindow):
         color = MUTED
         if not chosen:
             text, color = "Pick at least one space.", WARN
+        parts = self.look_parts()
+        if look:
+            title = "Zen keeps its tabs and spaces"
+            text, color = (" · ".join(parts), MUTED) if parts else ("Pick something to apply.", WARN)
         if self.confirming:
             title = f"Replace everything in {self.zen_target()}?"
             text = ("Tabs, folders, bookmarks, workspaces and containers Arc doesn't have will be removed. "
                     "You can roll back afterwards.")
             color = DANGER
         if self.running:
-            title, text, color = "Migrating…", "Keep Zen closed until it finishes.", MUTED
+            title = "Applying the look…" if self.run_look else "Migrating…"
+            text, color = "Keep Zen closed until it finishes.", MUTED
         elif self.rollback_state == "running":
             title, text, color = "Rolling back…", "Keep Zen closed until it finishes.", MUTED
         elif self.rollback_state == "done":
@@ -1527,39 +1745,46 @@ class MainWindow(QMainWindow):
         elif self.finished and self.succeeded:
             title, text, color = "Done", "The backup is deleted when you close this window.", MUTED
         elif self.finished:
-            title, text, color = "Migration stopped", "Roll back, or fix the problem and start over.", DANGER
+            title = "Couldn't apply the look" if self.run_look else "Migration stopped"
+            text, color = "Roll back, or fix the problem and start over.", DANGER
         self.summary_title.setText(title)
         self.summary_text.setText(text)
         self.summary_text.setStyleSheet(f"color: {color}; font-size: 12px;")
 
         idle = not self.running and not self.finished
-        self.aside.setEnabled(idle)
-        self.aside_fade.setOpacity(1.0 if idle else 0.5)
+        # In "just the look" the spaces matter only for their icons and colors
+        spaces_matter = not look or not self.arc_ok or v["workspace_icons"] or v["workspace_themes"]
+        self.aside.setEnabled(idle and spaces_matter)
+        self.aside_fade.setOpacity(1.0 if idle and spaces_matter else 0.5)
         self.arc_endpoint.setEnabled(idle)
         self.zen_endpoint.setEnabled(idle)
         # While confirming the warning needs the room; Cancel brings the choice back
-        self.add_mode.setVisible(idle and not self.confirming)
-        self.replace_mode.setVisible(idle and not self.confirming)
+        self.add_mode.setVisible(idle and not self.confirming and not look)
+        self.replace_mode.setVisible(idle and not self.confirming and not look)
         self.cancel_button.setVisible(idle and self.confirming)
         # After a rollback Start over and Exit sit on the result screen itself
         finished = self.finished and self.rollback_state not in ("running", "done")
         self.restart_button.setVisible(finished)
         self.exit_button.setVisible(finished)
         self.go_button.setVisible(idle)
-        self.go_button.setEnabled(bool(chosen))
-        if self.confirming:
+        self.go_button.setEnabled(bool(parts) if look else bool(chosen))
+        self.go_button.setIcon(QIcon(svg_pixmap(SPARKLES_SVG, "#ffffff", 16, max(2.0, self.devicePixelRatioF())))
+                               if look else QIcon())
+        if look:
+            self.go_button.setText("Apply the look")
+        elif self.confirming:
             self.go_button.setText("Yes, replace and migrate")
         elif v["nuke"]:
             self.go_button.setText("Replace and migrate")
         else:
             self.go_button.setText(f"Migrate {count(len(chosen), 'space')}")
-        self.go_button.setObjectName("PrimaryDanger" if v["nuke"] else "Primary")
+        self.go_button.setObjectName("PrimaryDanger" if v["nuke"] and not look else "Primary")
         restyle(self.go_button)
 
     # ----- running --------------------------------------------------------
 
     def go_clicked(self) -> None:
-        if self.values["nuke"] and not self.confirming:
+        if self.values["nuke"] and not self.look_mode and not self.confirming:
             self.confirming = True
             self.refresh()
             return
@@ -1594,6 +1819,8 @@ class MainWindow(QMainWindow):
         self.runs[profile] = self.runs.get(profile, 0) + 1 if kept else 1
         self.snapshot_dir = kept
         self.rollback_state = ""
+        self.run_look = not config.import_tabs
+        self.run_look_spaces = len(config.spaces or ()) if config.workspace_icons or config.workspace_themes else 0
 
         while self.steps_layout.count():
             item = self.steps_layout.takeAt(0)
@@ -1719,8 +1946,12 @@ class MainWindow(QMainWindow):
             f"background: {color}; color: #ffffff; border-radius: 28px; font-size: 26px; font-weight: 700;")
         self.result_has_notes = ok and bool(notes)
         can_roll_back = self.snapshot_dir is not None
-        if not ok:
-            self.result_title.setText("Migration stopped")
+        if self.run_look and ok:
+            self.result_title.setText("Zen looks like Arc now")
+            self.result_text.setText(self.look_result_text() + (
+                " A few things didn't apply as they were — see the notes below." if notes else ""))
+        elif not ok:
+            self.result_title.setText("Couldn't apply the look" if self.run_look else "Migration stopped")
             reason = message if message.endswith(".") else f"{message}."
             undo = f" The steps before it already changed Zen; roll back to put it back as it was {self.before_runs()}." if can_roll_back else ""
             self.result_text.setText(reason + undo)
@@ -1733,7 +1964,8 @@ class MainWindow(QMainWindow):
             self.result_text.setText("Your Arc spaces are in Zen, ready to open.")
         keep = ("The backup from before the first migration is kept until you close this window."
                 if self.run_count() > 1 else "The backup is kept until you close this window.")
-        self.result_hint.setText(f"Check your spaces in Zen. {keep}" if ok else keep)
+        check = "Check Zen." if self.run_look else "Check your spaces in Zen."
+        self.result_hint.setText(f"{check} {keep}" if ok else keep)
         self.result_hint.setVisible(can_roll_back)
         self.rollback_link.setVisible(ok and can_roll_back)
         self.rollback_confirm.setVisible(False)
@@ -1747,10 +1979,14 @@ class MainWindow(QMainWindow):
             if item.widget():
                 item.widget().deleteLater()
         containers = {s.container for s in chosen if s.container} if self.values["containers"] else set()
-        stats = [(len(chosen), "space"), (tabs, "tab"), (folders, "folder")]
+        stats = [(len(chosen), "space", "spaces"), (tabs, "tab", "tabs"), (folders, "folder", "folders")]
         if containers:
-            stats.append((len(containers), "container"))
-        for number, word in stats:
+            stats.append((len(containers), "container", "containers"))
+        if self.run_look:
+            settings = sum(1 for key, _ in ZEN_SETUP if self.values[key])
+            stats = [(settings, "Zen setting", "Zen settings"),
+                     (self.run_look_spaces, "space restyled", "spaces restyled"), (0, "tab changed", "tabs changed")]
+        for number, one, many in stats:
             stat = frame("Stat")
             stat.setMinimumWidth(96)
             box = QVBoxLayout(stat)
@@ -1758,7 +1994,7 @@ class MainWindow(QMainWindow):
             box.setSpacing(0)
             value = label(str(number))
             value.setStyleSheet("font-size: 20px; font-weight: 700;")
-            name = label(word if number == 1 else f"{word}s", "small")
+            name = label(one if number == 1 else many, "small")
             for text in (value, name):
                 text.setAlignment(Qt.AlignCenter)
                 box.addWidget(text)
