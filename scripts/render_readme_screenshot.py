@@ -25,12 +25,11 @@ def main() -> int:
     app.setStyleSheet(APP_STYLESHEET)
 
     window = MainWindow()
-    window.arc_combo.clear()
-    window.arc_combo.addItem("~/Library/Application Support/Arc")
-    window.zen_combo.clear()
-    window.zen_combo.addItem("~/Library/Application Support/zen/Profiles/default-release")
-    window.log.setPlainText("Ready.")
-    window.resize(900, 720)
+    # Show home-relative paths; keep the discovered profiles so the cards are real
+    home = str(Path.home())
+    for combo in (window.arc_combo, window.zen_combo):
+        combo.setEditText(combo.currentText().replace(home, "~", 1))
+    window.resize(1040, 760)
     window.show()
     app.processEvents()
 

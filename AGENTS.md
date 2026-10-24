@@ -67,12 +67,18 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     space selection (`--space`, `--list-spaces`), and optional migration elements.
 
 - `src/arc2zen/desktop.py`
-  - PySide6 GUI wrapper around the shared migration orchestrator.
+  - PySide6 single window around the shared migration orchestrator: spaces and
+    the add/replace choice on the left, presets and option chips on the right,
+    a summary with the Migrate button in the footer; chips map one-to-one to
+    `MigrationOptions` fields (`CATEGORIES`, `SAFETY`, presets in `PRESETS`).
+  - Space rows come from `space_overview.arc_space_overview()`; built-in
+    Arc icons are drawn from the installed Zen's `omni.ja`
+    (`zen_assets.zen_selectable_icon_svg`).
   - Lets users pick Arc/Zen profiles, Arc spaces, optional migration steps, and
     nuke mode.
   - Offers runtime options for skipping `Orphaned`, creating backups, and
     closing Zen automatically.
-  - Confirms pending parameters, closes only the Zen running the target profile
+  - Confirms a replacing migration in the footer, closes only the Zen running the target profile
     (found by its `.parentlock` / `parent.lock`), then streams migration
     progress into the UI.
   - Uses a temporary export file so GUI runs do not leave `arc_pinned_tabs_export.json`.

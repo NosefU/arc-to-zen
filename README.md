@@ -38,18 +38,27 @@ Pick the archive for your OS:
 
 ## GUI
 
-1. Close Arc and Zen.
-2. Open the downloaded app.
-3. Choose the Arc data folder and target Zen profile.
-4. In **Spaces**, uncheck the Arc spaces you do not want to migrate.
-5. Choose what to migrate.
-6. Use **Options** to skip the synthetic `Orphaned` workspace, create backups,
-   and let the app close Zen automatically. Only the Zen running the target
-   profile is closed; Zen windows of other profiles keep running.
-7. Optionally enable **Clear out Zen profile before migration** to rebuild Zen
-   from Arc.
-8. Start the migration and wait for the progress log to finish.
-9. Open Zen.
+Everything is on one screen:
+
+- **Header**: the Arc data folder and the Zen profile are found automatically,
+  with their status; click either to pick another one.
+- **Spaces** (left): pick the Arc spaces to migrate; each row shows the
+  space's icon, colors, tab and folder counts, and the container it will open
+  in. Below, choose whether the spaces are **added to what's there** or
+  **replace Zen's contents** (clean rebuild: removes what Arc doesn't have).
+- **What comes along** (right): one click on a preset, **Just tabs** (spaces,
+  tabs and how they look) or **Arc as it was** (also sign-ins, boosts,
+  Air Traffic Control and an Arc-like Zen), or turn single items on and off,
+  which makes it **Custom**. Hover an item for what it does. **Safety** holds
+  backups, closing Zen automatically and the `Orphaned` workspace. Only the
+  Zen running the target profile is closed; Zen windows of other profiles keep
+  running.
+- **Footer**: what will happen in one line and the **Migrate** button; a
+  replacing migration asks for confirmation right there. During the run the
+  right side shows a status per step, the reason under a failed step, and the
+  full log on demand.
+
+Close Arc first, then open Zen when the migration is done.
 
 When only some spaces are selected, the migration replaces just the Zen
 workspaces with the same names and keeps every other workspace, so spaces can
