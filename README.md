@@ -35,6 +35,9 @@ Pick the archive for your OS:
   is hidden, single or multiple toolbars from Arc's top bar, easier tab
   drag-to-split
 - 🗄️ optionally, sites' localStorage of those profiles, in their containers
+- 🗣️ languages: the languages sites are asked for, languages never or always
+  to translate, the spellcheck dictionary, and Zen's interface language and
+  date formats following macOS as Arc's do
 
 ## GUI
 
@@ -136,6 +139,8 @@ Useful switches:
 - `--no-link-routing` skips Air Traffic Control rules
 - `--no-arc-look-mod`, `--no-sidebar-mode`, `--no-toolbar-layout`,
   `--no-split-drag` skip the Zen settings below
+- `--no-website-languages`, `--no-interface-language` skip the language
+  settings below
 - `--no-containers` keeps workspaces and tabs out of per-profile containers
 - `--cookies` copies the cookies of the migrated spaces' Arc profiles into
   their containers
@@ -228,6 +233,25 @@ are not migrated.
   multiple toolbars; otherwise Zen uses a single toolbar.
 - **Drag-to-split**: dropping a tab onto another splits the view over 70% of
   the tab height after 250 ms instead of Zen's 20% and 500 ms.
+
+## Languages
+
+Zen keeps one set of language settings, so they come from Arc's first profile
+(`User Data/Default/Preferences`).
+
+- **Website languages**: Arc's preferred languages for sites
+  (`intl.accept_languages`), the languages Arc never translates and the ones it
+  always translates (`browser.translations.neverTranslateLanguages` /
+  `alwaysTranslateLanguages`), and the spellcheck dictionaries
+  (`spellchecker.dictionary`). Zen ships only the English (US) dictionary; for
+  any other one the log points to
+  [Firefox dictionaries](https://addons.mozilla.org/firefox/language-tools/),
+  and the next migration picks up a dictionary added there.
+- **Interface language**: Arc's menus and date formats follow macOS, so Zen is
+  set to do the same (`intl.locale.requested = ""`,
+  `intl.regional_prefs.use_os_locales = true`). A language picked for Arc alone
+  in System Settings → General → Language & Region → Applications is used
+  instead.
 
 ## Profiles
 

@@ -80,6 +80,16 @@ def parse_args() -> argparse.Namespace:
         help="Keep Zen's default thresholds for dragging a tab onto another to split the view.",
     )
     parser.add_argument(
+        "--no-website-languages",
+        action="store_true",
+        help="Do not copy Arc's website languages, never-translate languages and spellcheck dictionary.",
+    )
+    parser.add_argument(
+        "--no-interface-language",
+        action="store_true",
+        help="Do not make Zen's menus and date formats follow macOS (or Arc's own language) as Arc does.",
+    )
+    parser.add_argument(
         "--no-link-routing",
         action="store_true",
         help="Do not copy Arc Air Traffic Control rules into Zen Space Routing.",
@@ -163,6 +173,8 @@ def main() -> int:
         sidebar_mode=not args.no_sidebar_mode,
         toolbar_layout=not args.no_toolbar_layout,
         split_drag=not args.no_split_drag,
+        website_languages=not args.no_website_languages,
+        interface_language=not args.no_interface_language,
         cookies=args.cookies,
         passwords=args.passwords,
         local_storage=args.local_storage,

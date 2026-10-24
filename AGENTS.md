@@ -202,6 +202,14 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
   - Map Arc's sidebar mode and top bar setting to Zen compact mode and toolbar
     layout, add the drag-to-split thresholds, and write them to `prefs.js`.
 
+- `src/arc2zen/languages.py`
+  - Maps Arc's `Default` profile `Preferences` (`intl.accept_languages`,
+    `translate_blocked_languages`, `translate_allowlists`,
+    `spellcheck.dictionaries`) and Arc's own `AppleLanguages` to Zen language
+    prefs. Spellcheck only names dictionaries Zen has (bundled `en-US` plus
+    dictionary add-ons in `extensions.json`); an empty `intl.locale.requested`
+    makes Zen follow macOS.
+
 - `src/arc2zen/tab_repair.py`
   - Replaces tab URLs with hosts that fail IDNA round-trip (Zen throws
     `NS_ERROR_MALFORMED_URI` and its menus stop working) with `about:blank` in

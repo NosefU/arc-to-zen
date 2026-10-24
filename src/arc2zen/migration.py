@@ -16,6 +16,7 @@ from .link_routing import migrate_link_routing
 from .local_storage import migrate_local_storage
 from .arc_look_mod import install_arc_look_mod
 from .zen_settings import apply_zen_settings
+from .languages import migrate_languages
 from .passwords import migrate_passwords
 from .extract import ArcPinnedTabExtractor
 from .favicons import migrate_favicons
@@ -56,6 +57,8 @@ class MigrationOptions:
     sidebar_mode: bool = True
     toolbar_layout: bool = True
     split_drag: bool = True
+    website_languages: bool = True
+    interface_language: bool = True
     skip_orphaned: bool = True
     create_backups: bool = True
     auto_close_zen: bool = True
@@ -327,6 +330,19 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     sidebar=options.sidebar_mode,
                     toolbar=options.toolbar_layout,
                     split_drag=options.split_drag,
+                ),
+            ),
+        ),
+        (
+            options.website_languages or options.interface_language,
+            MigrationStep(
+                "Copy language settings",
+                lambda: migrate_languages(
+                    arc_profile=options.arc_profile,
+                    zen_profile=options.zen_profile,
+                    create_backups=options.create_backups,
+                    website=options.website_languages,
+                    interface=options.interface_language,
                 ),
             ),
         ),

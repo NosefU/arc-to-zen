@@ -768,6 +768,11 @@ CATEGORIES = [
         Choice("boosts", "Boosts", "CSS and hidden elements per site; Zen boosts have no JavaScript"),
         Choice("link_routing", "Air Traffic Control", "Rules that open links in a space become Zen Space Routing"),
     ], "", ()),
+    ("Languages", [
+        Choice("website_languages", "Website languages",
+               "Languages sites are asked for, languages never to translate, spellcheck dictionary"),
+        Choice("interface_language", "Interface language", "Menus and date formats follow macOS, as in Arc"),
+    ], "", ()),
     ("Zen setup", [
         Choice("arc_look_mod", "Arc Look mod", "Compact top bar, Arc-like address bar that always floats, Peek"),
         Choice("sidebar_mode", "Sidebar like Arc", "A hidden Arc sidebar starts Zen in compact mode"),
@@ -1261,6 +1266,8 @@ class MainWindow(QMainWindow):
             sidebar_mode=v["sidebar_mode"],
             toolbar_layout=v["toolbar_layout"],
             split_drag=v["split_drag"],
+            website_languages=v["website_languages"],
+            interface_language=v["interface_language"],
             cookies=v["cookies"],
             passwords=v["passwords"],
             local_storage=v["local_storage"],
