@@ -887,7 +887,7 @@ CATEGORIES = [
         Choice("cookies", "Cookies", "Stay signed in to sites, per container"),
         Choice("local_storage", "localStorage", "Site settings and some sign-ins, per container"),
         Choice("passwords", "Passwords", "Into Zen's password manager; Zen runs in the background for a moment"),
-    ], KEYCHAIN_NOTE, ("cookies", "local_storage", "passwords")),
+    ], KEYCHAIN_NOTE, ("cookies", "passwords")),
     ("Rules", [
         Choice("boosts", "Boosts", "CSS and hidden elements per site; Zen boosts have no JavaScript"),
         Choice("link_routing", "Air Traffic Control", "Rules that open links in a space become Zen Space Routing"),
