@@ -92,6 +92,7 @@ QWidget {{ color: {TEXT}; font-size: 13px; }}
 QMainWindow, QWidget#Root {{ background: {BG}; }}
 QFrame#Window {{ background: {WINDOW}; border: 1px solid {LINE}; border-radius: 14px; }}
 QFrame#Header {{ background: transparent; border: 0; border-bottom: 1px solid {LINE}; }}
+QFrame#Pinned {{ background: transparent; border: 0; border-bottom: 1px solid {LINE}; }}
 QFrame#Footer {{ background: {CARD}; border: 0; border-top: 1px solid {LINE};
     border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }}
 QScrollArea, QScrollArea > QWidget > QWidget {{ background: transparent; border: 0; }}
@@ -935,9 +936,16 @@ class MainWindow(QMainWindow):
         body.addWidget(self.aside)
         self.pages = QStackedWidget()
         self.pages.addWidget(self._scroll(self._build_choices_page()))
+        # While a migration runs its progress stays pinned and the steps scroll under it
+        run = QWidget()
+        run_layout = QVBoxLayout(run)
+        run_layout.setContentsMargins(0, 0, 0, 0)
+        run_layout.setSpacing(0)
+        run_layout.addWidget(self._build_progress())
         self.run_scroll = self._scroll(self._build_run_page())
         self.run_scroll.viewport().installEventFilter(self)
-        self.pages.addWidget(self.run_scroll)
+        run_layout.addWidget(self.run_scroll, 1)
+        self.pages.addWidget(run)
         body.addWidget(self.pages, 1)
         layout.addLayout(body, 1)
         layout.addWidget(self._build_footer())
@@ -1170,9 +1178,21 @@ class MainWindow(QMainWindow):
         self.result_head.setVisible(False)
         run.addWidget(self.result_head)
 
-        self.progress_box = QWidget()
+        self.log_toggle = self._link("Show log", self.toggle_log)
+        run.addWidget(self.log_toggle, 0, Qt.AlignLeft)
+        run.addWidget(self.log)
+        self.steps_card = frame("Card")
+        self.steps_layout = QVBoxLayout(self.steps_card)
+        self.steps_layout.setContentsMargins(16, 6, 16, 6)
+        self.steps_layout.setSpacing(0)
+        run.addWidget(self.steps_card)
+        run.addStretch(1)
+        return page
+
+    def _build_progress(self) -> QFrame:
+        self.progress_box = frame("Pinned")
         progress = QVBoxLayout(self.progress_box)
-        progress.setContentsMargins(0, 0, 0, 0)
+        progress.setContentsMargins(24, 16, 24, 12)
         progress.setSpacing(8)
         progress_top = QHBoxLayout()
         self.progress_title = label("Migrating…")
@@ -1185,18 +1205,8 @@ class MainWindow(QMainWindow):
         self.progress.setTextVisible(False)
         self.progress.setFixedHeight(6)
         progress.addWidget(self.progress)
-        run.addWidget(self.progress_box)
-
-        self.log_toggle = self._link("Show log", self.toggle_log)
-        run.addWidget(self.log_toggle, 0, Qt.AlignLeft)
-        run.addWidget(self.log)
-        self.steps_card = frame("Card")
-        self.steps_layout = QVBoxLayout(self.steps_card)
-        self.steps_layout.setContentsMargins(16, 6, 16, 6)
-        self.steps_layout.setSpacing(0)
-        run.addWidget(self.steps_card)
-        run.addStretch(1)
-        return page
+        self.progress_box.setVisible(False)
+        return self.progress_box
 
     def _build_footer(self) -> QWidget:
         footer = frame("Footer")
@@ -1587,6 +1597,7 @@ class MainWindow(QMainWindow):
         self.progress.setMaximum(len(titles))
         self.progress.setValue(0)
         self.progress_text.setText(f"1 of {len(titles)}")
+        self.run_scroll.verticalScrollBar().setValue(0)
         self.log.clear()
         self.running = True
         self.refresh()
@@ -1646,7 +1657,10 @@ class MainWindow(QMainWindow):
                 break
             row.set_state("done")
         if title in self.step_rows:
-            self.step_rows[title].set_state("running")
+            row = self.step_rows[title]
+            row.set_state("running")
+            # Keep the running step in sight, with the next ones peeking below it
+            QTimer.singleShot(0, lambda: self.running and self.run_scroll.ensureWidgetVisible(row, 0, 56))
         self.current_step_title = title
         self.progress_title.setText(title)
         self.progress.setValue(current - 1)
