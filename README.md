@@ -59,8 +59,14 @@ Everything is on one screen:
   to what's there** or **replace Zen's contents** (clean rebuild: removes what
   Arc doesn't have), and the **Migrate** button; a replacing migration asks for
   confirmation right there. During the run the
-  right side shows a status per step, the reason under a failed step, and the
-  full log on demand.
+  right side shows a status per step and the full log on demand.
+- **Result**: when the run ends, the right side shows what happened in its
+  middle. A clean run shows how many spaces, tabs, folders and containers are
+  in Zen and an **Open Zen** button; a run with notes (tabs Zen cannot open,
+  boost JavaScript left out, a missing spellcheck dictionary, …) lists them
+  and puts a small "i" on the green mark; the steps are one click away. A
+  failed run shows the reason, a **Show log** button and every step, the failed
+  one with its cause.
 
 Close Arc first, then open Zen when the migration is done.
 

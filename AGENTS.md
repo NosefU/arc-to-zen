@@ -80,7 +80,11 @@ Use `--nuke-only` to perform only that cleanup. Backups are controlled by
     closing Zen automatically.
   - Confirms a replacing migration in the footer, closes only the Zen running the target profile
     (found by its `.parentlock` / `parent.lock`), then streams migration
-    progress into the UI.
+    progress into the UI and ends on a result screen.
+  - A log line starting with `⚠️` is a note of the running step: the result
+    screen lists it and the step gets an "i". Use it for things the user
+    should act on or know (skipped tabs, boost JavaScript, missing dictionary),
+    not for routine skips.
   - Uses a temporary export file so GUI runs do not leave `arc_pinned_tabs_export.json`.
 
 - Root `cli.py` and `desktop.py`

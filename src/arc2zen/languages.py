@@ -100,7 +100,7 @@ def website_language_prefs(arc_profile: str | Path | None, profile: Path) -> Dic
         prefs["spellchecker.dictionary"] = ",".join(dict.fromkeys(matched))
     if missing:
         logger.info(
-            f"   Zen has no spellcheck dictionary for {', '.join(missing)}; "
+            f"⚠️ Zen has no spellcheck dictionary for {', '.join(missing)}; "
             f"add it from {DICTIONARIES_URL} and pick it in Zen's settings")
     return prefs
 

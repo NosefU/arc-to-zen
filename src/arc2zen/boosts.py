@@ -188,6 +188,7 @@ def migrate_boosts(
     css_dir.mkdir(exist_ok=True)
 
     added = updated = 0
+    with_js = []
     for boost in boosts:
         domain = store.setdefault(boost["host"], {"activeBoostId": None, "boostEntries": {}})
         entries = domain.setdefault("boostEntries", {})
@@ -213,7 +214,11 @@ def migrate_boosts(
         updated += int(not is_new)
         note = f"; its JavaScript ({len(boost['js'])} chars) is not copied, Zen boosts have no JS" if boost["js"] else ""
         logger.info(f"   {boost['host']}: {data['boostName']!r} ({state}){note}")
+        if boost["js"]:
+            with_js.append(f"{data['boostName']} ({boost['host']})")
 
+    if with_js:
+        logger.info(f"⚠️ Zen boosts run no JavaScript, so it was left out of: {', '.join(with_js)}")
     write_mozilla_lz4(store_path, store, create_backup=False)
     logger.info(f"Done. {added} boosts added, {updated} updated.")
     return True

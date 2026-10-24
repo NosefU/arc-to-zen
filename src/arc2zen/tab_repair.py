@@ -105,6 +105,6 @@ def repair_broken_tabs(zen_profile: str | Path | None = None, create_backups: bo
         total += changed
 
     if hosts:
-        logger.info("   Invalid hosts: " + ", ".join(sorted(set(hosts))))
+        logger.info(f"⚠️ Tabs with broken addresses became blank tabs: {', '.join(sorted(set(hosts)))}")
     logger.info(f"Done. Replaced {total} invalid tab URLs with about:blank.")
     return True

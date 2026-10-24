@@ -173,8 +173,9 @@ def migrate_link_routing(
             added += 1
         logger.info(f"   {route['matchType']} {route['reference']!r} -> {route['space']}")
 
-    skipped = ", ".join(f"{count} {kind}" for kind, count in stats.items() if count) or "none"
-    logger.info(f"Arc link rules skipped: {skipped}")
+    skipped = ", ".join(f"{count} {kind}" for kind, count in stats.items() if count)
+    if skipped:
+        logger.info(f"⚠️ Some Air Traffic Control rules were not copied: {skipped}")
     if added or updated:
         if create_backups and store_path.exists():
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")

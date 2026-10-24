@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -20,7 +21,7 @@ if sys.stderr is None:
 
 try:
     import psutil
-    from PySide6.QtCore import QByteArray, QPoint, QRect, QRectF, QSize, Qt, QThread, Signal
+    from PySide6.QtCore import QByteArray, QEvent, QPoint, QRect, QRectF, QSize, Qt, QThread, QTimer, Signal
     from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPixmap
     from PySide6.QtSvg import QSvgRenderer
     from PySide6.QtWidgets import (
@@ -59,6 +60,7 @@ from .profile_paths import (
 )
 from .space_overview import SpaceOverview, arc_space_overview
 from .zen_assets import zen_selectable_icon_svg
+from .zen_runner import ZenRunnerError, find_zen_binary
 
 
 # Palette of the window; the window always uses the light appearance.
@@ -76,6 +78,9 @@ OK_SOFT = "#e8f5ee"
 OK_LINE = "#bfe3cf"
 WARN = "#8a5100"
 WARN_SOFT = "#fdf3e3"
+# Notes on a finished run: in the accent color, part of the app rather than an alarm
+NOTE_SOFT = "#f5f4fe"
+NOTE_LINE = "#dcd8fb"
 DANGER = "#b42318"
 DANGER_SOFT = "#fdf0ee"
 DANGER_LINE = "#f3c9c4"
@@ -101,8 +106,8 @@ QLabel[role="error"] {{ color: {DANGER}; font-size: 12px; }}
 QFrame#Card {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 12px; }}
 QFrame#Aside {{ background: transparent; border: 0; border-right: 1px solid {LINE}; }}
 QFrame#Divider {{ background: {LINE}; border: 0; max-height: 1px; min-height: 1px; }}
-QFrame#Success {{ background: {OK_SOFT}; border: 1px solid {OK_LINE}; border-radius: 12px; }}
-QFrame#Failure {{ background: {DANGER_SOFT}; border: 1px solid {DANGER_LINE}; border-radius: 12px; }}
+QFrame#Notes {{ background: {NOTE_SOFT}; border: 1px solid {NOTE_LINE}; border-radius: 12px; }}
+QFrame#Stat {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 12px; }}
 QFrame#Endpoint {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 10px; }}
 QFrame#Endpoint:hover, QFrame#Endpoint:focus {{ border-color: {ACCENT}; }}
 QFrame#SpaceRow {{ background: transparent; border: 1.5px solid transparent; border-radius: 10px; }}
@@ -679,6 +684,13 @@ class ModeCard(Clickable):
         super().set_checked(checked)
 
 
+# An "i" in an accent ring marks a note: on a step and in the notes of a finished run
+NOTE_ICON = (f"border: 1.5px solid {ACCENT}; border-radius: 10px; color: {ACCENT};"
+             " font-family: Georgia, serif; font-size: 12px; font-weight: 700;")
+# A log line starting with this is a note of the current step
+NOTE_PREFIX = "⚠️"
+
+
 class StepRow(QWidget):
     """One migration step in the run list: status dot, title, and an optional note."""
 
@@ -703,9 +715,10 @@ class StepRow(QWidget):
             "running": (f"border: 2px solid {ACCENT}; border-radius: 10px;", "", TEXT, 600),
             "done": (f"background: {OK}; border-radius: 10px; color: #ffffff; font-weight: 700;", "✓", TEXT, 500),
             "failed": (f"background: {DANGER}; border-radius: 10px; color: #ffffff; font-weight: 700;", "!", TEXT, 600),
+            "noted": (NOTE_ICON, "i", TEXT, 500),
         }
         box, mark, color, weight = styles[state]
-        self.icon.setStyleSheet(box + " font-size: 11px;")
+        self.icon.setStyleSheet(box if state == "noted" else box + " font-size: 11px;")
         self.icon.setText(mark)
         self.title.setStyleSheet(f"color: {color}; font-weight: {weight};")
         self.note.setText(note)
@@ -819,6 +832,7 @@ class MainWindow(QMainWindow):
         self.step_rows: Dict[str, StepRow] = {}
         self.current_step_title = ""
         self.step_notes: Dict[str, str] = {}
+        self.step_infos: Dict[str, List[str]] = {}
 
         self.setWindowTitle("Arc to Zen")
         self.setWindowIcon(QIcon(str(resource_path("assets", "app-icon.png"))))
@@ -858,6 +872,15 @@ class MainWindow(QMainWindow):
         area.setWidget(content)
         return area
 
+    def _centered(self, widget: QWidget, width: int) -> QHBoxLayout:
+        """Center a widget of up to width; a wrapped label keeps its height, unlike AlignHCenter."""
+        widget.setMaximumWidth(width)
+        row = QHBoxLayout()
+        row.addStretch(1)
+        row.addWidget(widget, 100)
+        row.addStretch(1)
+        return row
+
     def _link(self, text: str, slot: Callable) -> QPushButton:
         button = QPushButton(text)
         button.setObjectName("Link")
@@ -882,7 +905,9 @@ class MainWindow(QMainWindow):
         body.addWidget(self.aside)
         self.pages = QStackedWidget()
         self.pages.addWidget(self._scroll(self._build_choices_page()))
-        self.pages.addWidget(self._scroll(self._build_run_page()))
+        self.run_scroll = self._scroll(self._build_run_page())
+        self.run_scroll.viewport().installEventFilter(self)
+        self.pages.addWidget(self.run_scroll)
         body.addWidget(self.pages, 1)
         layout.addLayout(body, 1)
         layout.addWidget(self._build_footer())
@@ -1032,20 +1057,59 @@ class MainWindow(QMainWindow):
         run.setContentsMargins(24, 20, 24, 24)
         run.setSpacing(14)
 
-        self.result_card = QFrame()
-        result = QHBoxLayout(self.result_card)
-        result.setContentsMargins(18, 16, 18, 16)
-        result.setSpacing(14)
-        self.result_mark = QLabel()
-        self.result_mark.setFixedSize(40, 40)
+        # A finished run shows its result in the middle of the column (a failure a bit higher);
+        # the steps and the log hang below it, so opening them never moves the result
+        self.result_spacer = QWidget()
+        self.result_spacer.setFixedHeight(0)
+        run.addWidget(self.result_spacer)
+        self.result_head = QWidget()
+        head = QVBoxLayout(self.result_head)
+        head.setContentsMargins(0, 0, 0, 0)
+        head.setSpacing(12)
+        # The mark, plus a filled accent "i" on its corner when the run left notes
+        mark_box = QWidget()
+        mark_box.setFixedSize(72, 60)
+        self.result_mark = QLabel(mark_box)
+        self.result_mark.setGeometry(8, 4, 56, 56)
         self.result_mark.setAlignment(Qt.AlignCenter)
+        self.result_badge = QLabel(mark_box)
+        self.result_badge.setGeometry(46, 0, 26, 26)
+        self.result_badge.setStyleSheet(f"background: {WINDOW}; border-radius: 13px;")
+        ring = QLabel("i", self.result_badge)
+        ring.setGeometry(3, 3, 20, 20)
+        ring.setAlignment(Qt.AlignCenter)
+        ring.setStyleSheet(f"background: {ACCENT}; border-radius: 10px; color: {NOTE_SOFT};"
+                           " font-family: Georgia, serif; font-size: 12px; font-weight: 700;")
+        head.addWidget(mark_box, 0, Qt.AlignHCenter)
         self.result_title = label("")
-        self.result_title.setStyleSheet("font-size: 15px; font-weight: 600;")
+        self.result_title.setAlignment(Qt.AlignCenter)
+        self.result_title.setStyleSheet("font-size: 22px; font-weight: 700;")
+        head.addWidget(self.result_title)
         self.result_text = label("", "muted", wrap=True)
-        result.addWidget(self.result_mark, 0, Qt.AlignTop)
-        result.addLayout(text_column(self.result_title, self.result_text), 1)
-        self.result_card.setVisible(False)
-        run.addWidget(self.result_card)
+        self.result_text.setAlignment(Qt.AlignCenter)
+        head.addLayout(self._centered(self.result_text, 460))
+        self.result_stats = QWidget()
+        self.result_stats_layout = QHBoxLayout(self.result_stats)
+        self.result_stats_layout.setContentsMargins(0, 4, 0, 0)
+        self.result_stats_layout.setSpacing(8)
+        head.addWidget(self.result_stats, 0, Qt.AlignHCenter)
+        self.result_notes = frame("Notes")
+        self.result_notes_layout = QVBoxLayout(self.result_notes)
+        self.result_notes_layout.setContentsMargins(14, 12, 14, 12)
+        self.result_notes_layout.setSpacing(10)
+        head.addLayout(self._centered(self.result_notes, 480))
+        actions = QHBoxLayout()
+        actions.setSpacing(8)
+        actions.addStretch(1)
+        self.result_action = QPushButton()
+        self.result_action.clicked.connect(self.result_action_clicked)
+        actions.addWidget(self.result_action)
+        self.steps_toggle = self._link("", self.toggle_steps)
+        actions.addWidget(self.steps_toggle)
+        actions.addStretch(1)
+        head.addLayout(actions)
+        self.result_head.setVisible(False)
+        run.addWidget(self.result_head)
 
         self.progress_box = QWidget()
         progress = QVBoxLayout(self.progress_box)
@@ -1064,14 +1128,14 @@ class MainWindow(QMainWindow):
         progress.addWidget(self.progress)
         run.addWidget(self.progress_box)
 
+        self.log_toggle = self._link("Show log", self.toggle_log)
+        run.addWidget(self.log_toggle, 0, Qt.AlignLeft)
+        run.addWidget(self.log)
         self.steps_card = frame("Card")
         self.steps_layout = QVBoxLayout(self.steps_card)
         self.steps_layout.setContentsMargins(16, 6, 16, 6)
         self.steps_layout.setSpacing(0)
         run.addWidget(self.steps_card)
-        self.log_toggle = self._link("Show log", self.toggle_log)
-        run.addWidget(self.log_toggle, 0, Qt.AlignLeft)
-        run.addWidget(self.log)
         run.addStretch(1)
         return page
 
@@ -1281,6 +1345,46 @@ class MainWindow(QMainWindow):
     def toggle_log(self) -> None:
         self.log.setVisible(not self.log.isVisible())
         self.log_toggle.setText("Hide log" if self.log.isVisible() else "Show log")
+        if self.finished and not self.succeeded:
+            self.result_action.setText(self.log_toggle.text())
+
+    def toggle_steps(self) -> None:
+        self.steps_card.setVisible(not self.steps_card.isVisible())
+        self.update_steps_toggle()
+
+    def update_steps_toggle(self) -> None:
+        shown = self.steps_card.isVisible()
+        self.steps_toggle.setText("Hide all steps" if shown else f"Show all {count(len(self.step_rows), 'step')}")
+
+    def result_action_clicked(self) -> None:
+        if self.finished and not self.succeeded:
+            self.toggle_log()
+        else:
+            self.open_zen()
+
+    def open_zen(self) -> None:
+        try:
+            binary = find_zen_binary()
+            profile = resolve_zen_profile(self.zen_combo.currentText())
+            subprocess.Popen([str(binary), "-profile", str(profile)], start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except (ZenRunnerError, OSError, FileNotFoundError) as exc:
+            QMessageBox.warning(self, "Can't open Zen", str(exc))
+
+    def eventFilter(self, watched, event):
+        # Only the run page viewport is watched; its resize moves the result
+        if event.type() == QEvent.Resize and self.finished:
+            QTimer.singleShot(0, self.place_result)
+        return super().eventFilter(watched, event)
+
+    def place_result(self) -> None:
+        """Center the result in the column, a failure at a third of it; steps and log hang below."""
+        if not self.result_head.isVisible():
+            self.result_spacer.setFixedHeight(0)
+            return
+        free = self.run_scroll.viewport().height() - 20 - 24 - self.result_head.sizeHint().height()
+        share = 3 if not self.succeeded else 2
+        self.result_spacer.setFixedHeight(max(0, free // share))
 
     def refresh(self, *_):
         """Bring every chip, card, and the footer in line with the current choices."""
@@ -1388,6 +1492,7 @@ class MainWindow(QMainWindow):
                 item.widget().deleteLater()
         self.step_rows = {}
         self.step_notes = {}
+        self.step_infos = {}
         titles = [step.title for step in migration_steps(config, Path(tempfile.gettempdir()) / "arc-to-zen-plan.json")]
         for index, title in enumerate(titles):
             if index:
@@ -1397,7 +1502,12 @@ class MainWindow(QMainWindow):
             self.steps_layout.addWidget(row)
 
         self.pages.setCurrentIndex(1)
-        self.result_card.setVisible(False)
+        self.result_head.setVisible(False)
+        self.place_result()
+        self.steps_card.setVisible(True)
+        self.log_toggle.setVisible(True)
+        self.log.setVisible(False)
+        self.log_toggle.setText("Show log")
         self.progress_box.setVisible(True)
         self.progress.setMaximum(len(titles))
         self.progress.setValue(0)
@@ -1446,8 +1556,11 @@ class MainWindow(QMainWindow):
 
     def append_log(self, line: str):
         self.log.append(line)
-        if line.lstrip().startswith("❌") and self.current_step_title:
-            self.step_notes[self.current_step_title] = line.strip().lstrip("❌").strip()
+        text = line.strip()
+        if text.startswith("❌") and self.current_step_title:
+            self.step_notes[self.current_step_title] = text.lstrip("❌").strip()
+        elif text.startswith(NOTE_PREFIX) and self.current_step_title:
+            self.step_infos.setdefault(self.current_step_title, []).append(text[len(NOTE_PREFIX):].strip())
 
     def update_step(self, current: int, total: int, title: str):
         for row_title, row in self.step_rows.items():
@@ -1466,36 +1579,95 @@ class MainWindow(QMainWindow):
         self.finished = True
         self.succeeded = ok
         self.progress_box.setVisible(False)
-        if ok:
-            for row in self.step_rows.values():
+        self.log_toggle.setVisible(False)
+        reached = True
+        for title, row in self.step_rows.items():
+            if not ok and title == self.current_step_title:
+                row.set_state("failed", self.step_notes.get(title) or message)
+                reached = False
+            elif reached and title in self.step_infos:
+                row.set_state("noted", "\n".join(self.step_infos[title]))
+            elif reached and ok:
                 row.set_state("done")
-        elif self.current_step_title in self.step_rows:
-            note = self.step_notes.get(self.current_step_title) or message
-            self.step_rows[self.current_step_title].set_state("failed", note)
 
         chosen = self.chosen_spaces()
-        self.result_card.setObjectName("Success" if ok else "Failure")
+        tabs = sum(s.tabs for s in chosen)
+        folders = sum(s.folders for s in chosen)
+        notes = [(title, note) for title, items in self.step_infos.items() if title in self.step_rows for note in items]
+        color = OK if ok else DANGER
+        self.result_badge.setVisible(ok and bool(notes))
         self.result_mark.setText("✓" if ok else "!")
         self.result_mark.setStyleSheet(
-            f"background: {OK if ok else DANGER}; color: #ffffff; border-radius: 20px; font-size: 18px; font-weight: 700;"
-        )
-        if ok:
-            self.result_title.setText("Migration complete")
-            self.result_text.setText(
-                f"{count(len(chosen), 'space')}, {count(sum(s.tabs for s in chosen), 'tab')} and "
-                f"{count(sum(s.folders for s in chosen), 'folder')} are in Zen. Open Zen to see them."
-            )
-        else:
+            f"background: {color}; color: #ffffff; border-radius: 28px; font-size: 26px; font-weight: 700;")
+        landed = f"{count(len(chosen), 'space')}, {count(tabs, 'tab')} and {count(folders, 'folder')} are in Zen."
+        if not ok:
             self.result_title.setText("Migration stopped")
             reason = message if message.endswith(".") else f"{message}."
             backups = " Backups of changed files are in the Zen profile." if self.values["create_backups"] else ""
             self.result_text.setText(reason + backups)
-            self.log.setVisible(True)
-            self.log_toggle.setText("Hide log")
-        restyle(self.result_card)
-        self.result_card.setVisible(True)
-        self.refresh()
+        elif notes:
+            self.result_title.setText(f"Migration complete with {count(len(notes), 'note')}")
+            self.result_text.setText(f"{landed} Have a look at the notes below.")
+        else:
+            self.result_title.setText("Migration complete")
+            self.result_text.setText(f"{landed} Open Zen to see them.")
 
+        while self.result_stats_layout.count():
+            item = self.result_stats_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        containers = {s.container for s in chosen if s.container} if self.values["containers"] else set()
+        stats = [(len(chosen), "space"), (tabs, "tab"), (folders, "folder")]
+        if containers:
+            stats.append((len(containers), "container"))
+        for number, word in stats:
+            stat = frame("Stat")
+            stat.setMinimumWidth(96)
+            box = QVBoxLayout(stat)
+            box.setContentsMargins(14, 10, 14, 10)
+            box.setSpacing(0)
+            value = label(str(number))
+            value.setStyleSheet("font-size: 20px; font-weight: 700;")
+            name = label(word if number == 1 else f"{word}s", "small")
+            for text in (value, name):
+                text.setAlignment(Qt.AlignCenter)
+                box.addWidget(text)
+            self.result_stats_layout.addWidget(stat)
+        self.result_stats.setVisible(ok)
+
+        while self.result_notes_layout.count():
+            item = self.result_notes_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        for title, note in notes:
+            row = QWidget()
+            line = QHBoxLayout(row)
+            line.setContentsMargins(0, 0, 0, 0)
+            line.setSpacing(10)
+            icon = QLabel("i")
+            icon.setFixedSize(18, 18)
+            icon.setAlignment(Qt.AlignCenter)
+            icon.setStyleSheet(NOTE_ICON.replace("10px", "9px").replace("12px", "11px"))
+            line.addWidget(icon, 0, Qt.AlignTop)
+            heading = label(title)
+            heading.setStyleSheet("font-weight: 600;")
+            line.addLayout(text_column(heading, label(note, "muted", wrap=True)), 1)
+            self.result_notes_layout.addWidget(row)
+        self.result_notes.setVisible(ok and bool(notes))
+
+        self.result_action.setObjectName("Primary" if ok else "PrimaryDanger")
+        self.result_action.setText("Open Zen" if ok else "Show log")
+        restyle(self.result_action)
+        self.steps_toggle.setVisible(ok)
+        # A failure shows every step at once; a success keeps them one click away
+        self.steps_card.setVisible(not ok)
+        self.log.setVisible(False)
+        self.log_toggle.setText("Show log")
+        self.update_steps_toggle()
+        self.result_head.setVisible(True)
+        self.run_scroll.verticalScrollBar().setValue(0)
+        self.refresh()
+        QTimer.singleShot(0, self.place_result)
 
 def main() -> int:
     QApplication.setDesktopSettingsAware(False)

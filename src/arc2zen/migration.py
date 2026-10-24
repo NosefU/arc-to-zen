@@ -164,7 +164,7 @@ def convert_arc_only_urls(arc_spaces: list, emit_line: LineCallback | None = Non
     if converted:
         _report(emit_line, f"Converted {converted} Arc internal pages to Zen pages")
     if dropped:
-        _report(emit_line, f"Skipped {len(dropped)} tabs Zen cannot open: " + ", ".join(dropped))
+        _report(emit_line, f"⚠️ Skipped {len(dropped)} tabs Zen cannot open: " + ", ".join(dropped))
 
 
 def extract_arc_data(
