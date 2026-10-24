@@ -2,38 +2,46 @@
 
 ![Arc to Zen full migration](docs/full-migration.png)
 
-Migrate all Arc workspaces data into Zen — or just make Zen look like Arc.
+Move your Arc spaces, tabs, sign-ins and settings into Zen — or just make Zen
+look like Arc.
+
+## What moves
+
+- 🧭 Arc spaces to Zen workspaces, with their icons and colors
+- 📌 pinned tabs, Essentials and temporary open tabs
+- 🗂️ nested pinned folders, open or closed as in Arc
+- 🌐 site icons, so tabs don't start blank
+- 🧳 Arc profiles as Zen containers: each space opens in its profile's container
+- 🍪 cookies, so sites stay signed in (macOS)
+- 🔑 saved passwords (macOS)
+- 🗄️ sites' localStorage, such as site settings and some sign-ins
+- 🚀 boosts, as Zen boosts
+- 🛫 Air Traffic Control rules, as Zen Space Routing
+- 🗣️ languages: the languages sites are asked for, what to always or never
+  translate, the spellcheck dictionary, and the interface language
+- 🎛️ an Arc-like Zen: the Arc Look mod, Arc's sidebar and toolbars, easier
+  drag-to-split
+
+Along the way Arc's own pages open as their Zen counterparts (downloads,
+settings, extensions, passwords), and tabs with broken addresses become blank
+tabs, because such a tab makes Zen's menus stop responding. Arc pages Zen has no
+counterpart for and extension pages are skipped; the result lists them.
 
 ## Just want Zen to look like Arc?
 
-You don't have to migrate anything. **Just the look** ✨ only restyles Zen and
-leaves your tabs, spaces, sign-ins and everything else in it as they are:
+You don't have to migrate anything. **Just the look** ✨ only restyles Zen —
+the bundled Arc Look mod (compact top bar, floating address bar, Arc-style
+Peek), Arc's sidebar and toolbars, easier drag-to-split, and Arc's icons and
+colors for Zen spaces named like your Arc spaces — and leaves your tabs, spaces
+and sign-ins as they are. It works without Arc too, with a fresh Arc's layout.
 
-- 🎨 the bundled [Arc Look mod](#zen-settings): a compact top bar, an Arc-like
-  floating address bar, Arc-style Peek
-- 🧭 Arc's layout: the sidebar shown or hidden and the address in the sidebar or
-  in a top bar, as in your Arc
-- ✂️ easier tab drag-to-split
-- 🪐 Arc's icons and colors for Zen spaces named like your Arc spaces; Zen
-  spaces Arc doesn't have are left alone
-
-It works without Arc too, for example if you never used it or already removed
-it: the layout then follows a fresh Arc (sidebar shown, address in the sidebar)
-and space icons and colors are skipped.
-
-In the app pick **Just the look** and press **Apply the look**. From the
-command line:
-
-```bash
-python cli.py --look-only
-```
-
-Like a migration, it backs up the Zen profile first and can be rolled back.
+Pick **Just the look** in the app, or run `python cli.py --look-only`. Like a
+migration, it is backed up first and can be rolled back.
 
 ## Download
 
 Download the latest desktop app from
-[GitHub Releases](https://github.com/Thinkscape/arc-to-zen/releases/latest).
+[GitHub Releases](https://github.com/NosefU/arc-to-zen/releases/latest).
 
 Pick the archive for your OS:
 
@@ -42,78 +50,8 @@ Pick the archive for your OS:
 - Windows: `windows-x64`
 - Linux: `linux-x64`
 
-## Migrates
-
-- 🧭 Arc spaces to Zen workspaces
-- 📌 pinned tabs and Essentials
-- 🕘 temporary open tabs
-- 🗂️ nested pinned folders
-- 👁️ pinned-folder open/closed state
-- 🎨 workspace icons and colors/themes
-- 🌐 cached favicons
-- 🧳 Arc profiles as Zen containers, each migrated workspace opening in its
-  profile's container
-- 🍪 optionally, cookies of those profiles, so sites stay signed in (macOS)
-- 🔑 optionally, saved passwords of those profiles (macOS)
-- 🚀 Arc boosts as Zen boosts (CSS per site)
-- 🛫 Air Traffic Control rules as Zen Space Routing
-- 🎛️ Zen settings: the bundled Arc Look mod, compact mode when Arc's sidebar
-  is hidden, single or multiple toolbars from Arc's top bar, easier tab
-  drag-to-split
-- 🗄️ optionally, sites' localStorage of those profiles, in their containers
-- 🗣️ languages: the languages sites are asked for, languages never or always
-  to translate, the spellcheck dictionary, and Zen's interface language and
-  date formats following macOS as Arc's do
-
-## GUI
-
-Everything is on one screen:
-
-- **Header**: the Arc data folder and the Zen profile are found automatically,
-  with their status; click either to pick another one. Without a Zen profile
-  nothing can run yet: a note above the presets offers **Download Zen** and
-  **Choose profile folder…**, and once Zen is installed and opened, coming back
-  to the window finds it.
-- **Spaces** (left): pick the Arc spaces to migrate; each row shows the
-  space's icon, colors, tab and folder counts, and its Arc profile. As in Arc,
-  spaces stay bound to their profile: each profile becomes one Zen container
-  of the same name, and all its spaces open in it.
-- **What comes along** (right): one click on a preset, **Just tabs** (spaces,
-  tabs and how they look), **Arc as it was** (also sign-ins, boosts,
-  Air Traffic Control and an Arc-like Zen) or **Just the look** (no migration:
-  only the Arc look for Zen, see above), or turn single items on and off,
-  which makes it **Custom**. Arc as it was is picked when the app opens; without
-  Arc on the Mac only Just the look is available. In Just the look the spaces
-  list marks which spaces Zen has: only those get their Arc icon and colors. Hover an item for what it does. **Safety** holds
-  closing Zen automatically and the `Orphaned` workspace. Only the
-  Zen running the target profile is closed; Zen windows of other profiles keep
-  running.
-- **Footer**: how many spaces, tabs and folders go, whether they are **added
-  to what's there** or **replace Zen's contents** (clean rebuild: removes what
-  Arc doesn't have), and the **Migrate** button; a replacing migration asks for
-  confirmation right there. During the run the
-  right side shows a status per step and the full log on demand.
-- **Result**: when the run ends, the right side shows what happened in its
-  middle. A clean run shows how many spaces, tabs, folders and containers are
-  in Zen and an **Open Zen** button; a run with notes (tabs Zen cannot open,
-  boost JavaScript left out, a missing spellcheck dictionary, …) lists them
-  and puts a small "i" on the green mark; the steps are one click away. A
-  failed run shows the reason, a **Roll back** and a **Show log** button and
-  every step, the failed one with its cause.
-- **Backup and rollback**: before the first step the Zen profile is backed up,
-  always. Until the window is closed, a failed run offers **Roll back** and a
-  finished one **Something went wrong? Roll back**; either puts the profile back
-  exactly as it was. The backup is taken before the window's first run on that
-  profile, and later runs (after **Start over**) keep it, so rolling back returns
-  Zen to how it was before any of them. Closing the window deletes the backup.
-
-Close Arc first, then open Zen when the migration is done.
-
-When only some spaces are selected, the migration replaces just the Zen
-workspaces with the same names and keeps every other workspace, so spaces can
-be migrated one at a time.
-
-## macOS Unsigned App
+<details>
+<summary>macOS: opening the unsigned app</summary>
 
 The macOS build is not signed yet, so Gatekeeper may block it the first time.
 
@@ -127,9 +65,94 @@ The macOS build is not signed yet, so Gatekeeper may block it the first time.
 6. Confirm with **Open Anyway** and enter your password or use Touch ID if asked.
 7. Open `Arc to Zen.app` again.
 
-## CLI
+</details>
 
-Install Python dependencies:
+## Using the app
+
+Everything is on one screen.
+
+- **Header**: Arc and Zen are found automatically, with their status; click
+  either to pick another folder. Without a Zen profile nothing can run yet: a
+  note above the presets offers **Download Zen** and **Choose profile folder…**,
+  and once Zen is installed and opened, coming back to the window finds it.
+- **Spaces** (left): pick the Arc spaces to bring; each row shows the space's
+  icon, colors, tab and folder counts, and its Arc profile. As in Arc, spaces
+  stay bound to their profile: each profile becomes one Zen container of the
+  same name, and all its spaces open in it.
+- **What comes along** (right): pick a preset, or turn single items on and off,
+  which makes it **Custom**. Hover an item for what it does.
+  - **Just tabs**: spaces, tabs and how they look; nothing else in Zen changes.
+  - **Arc as it was** (picked when the app opens): also sign-ins, boosts,
+    Air Traffic Control, languages and an Arc-like Zen.
+  - **Just the look**: no migration, only the Arc look for Zen (see above). The
+    spaces list marks which spaces Zen has; only those get their Arc icon and
+    colors. Without Arc on the Mac it is the only preset.
+  - **Safety**: close Zen automatically if it's open (only the Zen running the
+    target profile; other Zen windows keep running), and where Essentials that
+    belong to no space go.
+- **Footer**: how much goes, whether it is **added to what's there** (spaces
+  with the same name are updated, the rest of Zen stays) or **replaces Zen's
+  contents** (tabs, folders, bookmarks, workspaces and containers Arc doesn't
+  have are removed; asks for confirmation), and the **Migrate** button.
+- **While it runs**: the progress stays on top and the list of steps follows
+  the running one; the full log is one click away.
+- **Result**: a clean run shows what is in Zen now and an **Open Zen** button. A
+  run with notes (tabs Zen cannot open, boost JavaScript left out, a missing
+  spellcheck dictionary, …) lists them; the details are under the steps. A
+  failed run shows the reason, the steps and the log. **Start over** goes back
+  to the choices, **Exit** closes the window.
+
+When only some spaces are picked, only the Zen workspaces with the same names
+are replaced and every other workspace stays, so spaces can be moved one at a
+time.
+
+Arc can stay open: the migrator only reads its files. Quitting Arc first makes
+sure its latest changes, like a tab moved or a site signed into a moment ago,
+are on disk.
+
+### Backup and rollback
+
+Before the first step the Zen profile is backed up, always. Until the window is
+closed, a failed run offers **Roll back** and a finished one **Something went
+wrong? Roll back**; either puts Zen back exactly as it was. The backup is taken
+before the window's first run on that profile, and later runs (after **Start
+over**) keep it, so rolling back returns Zen to how it was before any of them.
+Closing the window deletes the backup.
+
+## Good to know
+
+- **Keychain**: cookies and passwords need Arc's key from the macOS Keychain
+  ("Arc Safe Storage"), so macOS asks for access once per run. Arc on Windows
+  is not supported for them yet.
+- **Cookies**: sign-ins that last only until the browser closes are not
+  copied; cookies Zen already has for the same site and container are
+  replaced.
+- **Passwords**: Zen keeps passwords per profile, not per container, so the
+  logins of all selected Arc profiles end up in one password manager. Logins
+  Zen already has are kept; "never save" entries and sign-ins through another
+  account (federated) are not copied. A Zen profile with a Primary Password is
+  refused; remove it first. Zen briefly runs in the background while they are
+  added.
+- **localStorage**: only web sites are copied; data a site already has in Zen
+  is kept, and values over Zen's 5 MB per site are skipped. IndexedDB is not
+  copied; sites download that data again themselves. Zen briefly runs in the
+  background here too.
+- **Boosts**: all of your Arc boosts are copied, whatever spaces you pick. Zen
+  boosts have no JavaScript, so a boost's script is left out; the result names
+  those boosts. A boost on in Arc is turned on in Zen unless Zen already has one
+  on for that site. Running again updates the boosts instead of adding copies.
+- **Air Traffic Control**: rules with conditions Zen cannot express, such as the
+  app a link came from, and rules sending links to Little Arc are skipped; the
+  result says how many. Rules that open links in the most recent space need
+  nothing, since Zen does that anyway.
+- **Languages**: Zen has only the English (US) spellcheck dictionary built in;
+  for other languages the result links to
+  [Firefox dictionaries](https://addons.mozilla.org/firefox/language-tools/),
+  and the next migration picks up a dictionary added there.
+
+## Command line
+
+Install:
 
 ```bash
 python3 -m venv .venv
@@ -137,24 +160,27 @@ python3 -m venv .venv
 pip install -e .
 ```
 
-Run the full migration:
+Migrate:
 
 ```bash
 python cli.py
 ```
 
-Clean rebuild mode:
+The command line leaves cookies, passwords and localStorage out unless asked
+(`--cookies`, `--passwords`, `--local-storage`); everything else is on, as in
+**Arc as it was**.
+
+Clean rebuild, the same as **Replace Zen's contents** in the app:
 
 ```bash
 python cli.py --nuke
 ```
 
-`--nuke` clears existing Zen tabs, folders, pins, groups, closed-tab state, and
-regular bookmarks before importing Arc data, even when only some spaces are
-selected. It also removes Zen workspaces that are not being migrated, such as
-the default `Space` of a new profile, and containers no migrated Arc profile
-uses, such as the built-in `Banking` and `Shopping`, together with their
-cookies, site permissions, and site storage (localStorage, IndexedDB).
+It clears Zen's tabs, folders, pins, groups, closed tabs and regular bookmarks
+before importing, even when only some spaces are picked, and removes Zen
+workspaces and containers Arc doesn't have, such as the default `Space` of a
+new profile and the built-in `Banking` and `Shopping` containers with their
+cookies and site data.
 
 Every run backs up the Zen profile first and prints the backup folder with the
 command that undoes the run:
@@ -165,179 +191,40 @@ python cli.py --rollback "<profile>/arc-to-zen-backup-<time>"
 
 Delete that folder once Zen looks right.
 
-Useful switches:
+Options:
 
-- `--arc-profile PATH`
-- `--zen-profile PATH`
+- `--arc-profile PATH`, `--zen-profile PATH` pick the Arc data folder and the
+  Zen profile
 - `--list-spaces` prints the Arc space names
-- `--space NAME` migrates only that space; repeat it to pick several. Other Zen
-  workspaces are kept
-- `--include-orphaned` creates a separate workspace for unmatched Essentials
-- `--rollback BACKUP` puts the Zen profile back from a run's backup folder
+- `--space NAME` moves only that space; repeat it to pick several. Other Zen
+  workspaces stay
 - `--look-only` only makes Zen look like Arc (see
-  [Just want Zen to look like Arc?](#just-want-zen-to-look-like-arc)): no tabs,
-  spaces or sign-ins are touched; the `--no-…` switches of the look still apply
-- `--no-favicons`
-- `--no-folder-states`
-- `--no-workspace-icons`
-- `--no-workspace-themes`
-- `--no-default-theme` keeps Zen's colors on spaces without an Arc theme; by
-  default they get Arc's default gradient (`#fff1f2` → `#e3e3ff`)
-- Arc internal pages open as their Zen counterparts (`arc://downloads` →
-  `about:downloads`, `arc://settings` → `about:preferences`, `arc://extensions`
-  → `about:addons`, passwords → `about:logins`). Other `arc://` pages,
-  `chrome-extension://` pages, and `blob:` URLs cannot open in Zen and are
-  skipped; the log lists them.
-- `--no-tab-repair` keeps tab URLs Zen cannot parse; by default they become
-  `about:blank`, because such a tab (for example a bad punycode host like
-  `ww.xn--15-.example.org`) makes Zen's menus stop responding
-- `--no-boosts` skips Arc boosts
-- `--no-link-routing` skips Air Traffic Control rules
+  [Just want Zen to look like Arc?](#just-want-zen-to-look-like-arc)); the
+  `--no-…` options of the look still apply
+- `--rollback BACKUP` puts Zen back from a run's backup folder
+- `--nuke-only` only clears the Zen profile, without importing anything
+- `--include-orphaned` puts Essentials that belong to no space into a separate
+  `Orphaned` workspace instead of the first space
+- `--cookies`, `--passwords`, `--local-storage` also copy sign-ins
+- `--no-favicons`, `--no-folder-states`, `--no-workspace-icons`,
+  `--no-workspace-themes` leave out site icons, folder states, space icons and
+  colors
+- `--no-default-theme` keeps Zen's colors on spaces without an Arc theme
+  instead of Arc's default pink-to-lavender gradient
+- `--no-tab-repair` keeps tabs with broken addresses as they are
+- `--no-containers` keeps spaces and tabs out of per-profile containers
+- `--no-boosts`, `--no-link-routing` leave out boosts and Air Traffic Control
 - `--no-arc-look-mod`, `--no-sidebar-mode`, `--no-toolbar-layout`,
-  `--no-split-drag` skip the Zen settings below
-- `--no-website-languages`, `--no-interface-language` skip the language
-  settings below
-- `--no-containers` keeps workspaces and tabs out of per-profile containers
-- `--cookies` copies the cookies of the migrated spaces' Arc profiles into
-  their containers
-- `--passwords` copies the saved passwords of those profiles into Zen
-- `--local-storage` copies sites' localStorage of those profiles into their
-  containers
-- `--nuke-only`
+  `--no-split-drag` leave out parts of the Arc-like Zen
+- `--no-website-languages`, `--no-interface-language` leave out the language
+  settings
+- `--export-file PATH` keeps the intermediate Arc export there
+  (`./arc_pinned_tabs_export.json` by default)
 
-## Containers and Cookies
+Set `ZEN_BINARY` if Zen is not installed in a standard location; passwords and
+localStorage need to start it.
 
-Every Arc profile behind a migrated space becomes a Zen container with the same
-name as the Arc profile, so the unrenamed default profile becomes `Default`.
-Other profiles that still have Chromium's generated name ("Person 2") are named
-after their first space instead. Containers that already
-exist are reused by name, including the built-in `Personal` and `Work`. Each migrated workspace gets that container as its
-default, and its tabs and Essentials move into it.
+## How it works
 
-Cookie migration is on by default in the GUI and opt-in in the CLI
-(`--cookies`). It reads the Arc cookie key from the macOS
-Keychain item `Arc Safe Storage`, so macOS asks for permission first. Only
-persistent, unexpired, unpartitioned cookies are copied; existing Zen cookies
-with the same name, host, path, and container are overwritten. Session cookies
-are skipped. Arc on Windows is not supported yet.
-
-## Passwords
-
-Password migration is on by default in the GUI and opt-in in the CLI
-(`--passwords`). It decrypts Arc's `Login Data` and `Login Data For Account`
-with the same Keychain key as cookies (macOS asks once per run), then starts
-Zen headless on the target profile for a few seconds so Zen encrypts the
-logins with its own key. Passwords never touch the disk in plain text.
-
-- Zen keeps passwords per profile, not per container, so logins of all selected
-  Arc profiles end up in one password manager.
-- Logins that already exist for the same site, auth kind, and username are
-  skipped; "never save" entries and federated sign-ins are not copied.
-- A Zen profile with a Primary Password is refused; remove it first.
-- Set `ZEN_BINARY` if Zen is not installed in a standard location.
-
-## localStorage
-
-localStorage migration is on by default in the GUI and opt-in in the CLI
-(`--local-storage`). It reads Arc's `Local Storage/leveldb` (a Chromium
-LevelDB, parsed in pure Python) and writes the values through a headless Zen
-into the container of each profile, so they land in Zen's own format.
-
-- Only web sites (`http`/`https`) are copied; extension storage is skipped.
-- Keys a site already has in Zen are kept, not overwritten.
-- Values over Zen's per-site quota (5 MB) are skipped and counted in the log.
-- IndexedDB and Session Storage are not migrated: converting Chromium's
-  IndexedDB format is fragile, and sites re-download that data themselves.
-
-## Boosts
-
-Arc keeps boosts in its account data; the migration reads the local Firestore
-cache in `~/Library/Application Support/firestore/Arc` (next to the Arc data
-folder) and adds each boost to Zen for the same host, with its CSS, name, and
-zap selectors. Boosts belong to the Arc account, so all of them are copied
-regardless of the selected spaces. A boost active in Arc becomes the active Zen
-boost for its site unless Zen already has one active there. Zen boosts have no
-JavaScript, so a boost's JS is not copied; the log names those boosts.
-Re-running updates the same boosts instead of duplicating them.
-
-## Air Traffic Control
-
-Arc rules that open matching links in a specific space
-(`StorableLinkRouting.json`) become Zen Space Routing routes to the workspace
-with the same name. "Contains" and regex conditions map directly, "is" maps to
-Zen's "equal to", and "starts/ends with" become a regex; a rule with several URL
-conditions becomes one regex that requires all of them. Rules that open links
-in the most recent space need no route, since that is Zen's default. Rules with
-conditions Zen cannot express, such as the source app, and rules sending links
-to Little Arc are skipped and counted in the log, as are rules for spaces that
-are not migrated.
-
-## Zen Settings
-
-- **Arc Look mod** (`src/arc2zen/mods/arc-look`): container line on the left of
-  tabs and none on Essentials, a 32 px top bar, an address bar sized to the URL
-  (up to 640 px) without a background, light Peek buttons, and a rounded Peek
-  window. The migration installs it, rebuilds Zen's mod stylesheet, sets the
-  mod's default settings, and switches Zen's address bar to "always floating"
-  (`zen.urlbar.behavior = float`), as in Arc; each part of the mod can be
-  switched off in Zen's mod settings.
-- **Sidebar**: a hidden Arc sidebar (`sidebarMode = noChrome` in
-  `StorableWindows.json`) turns on Zen compact mode at startup, where the
-  sidebar shows on hover; a shown sidebar turns it off.
-- **Toolbars**: Arc's URL in the top bar (`topBarURLEnabled` in
-  `~/Library/Preferences/company.thebrowser.Browser.plist`) selects Zen's
-  multiple toolbars; otherwise Zen uses a single toolbar.
-- Without Arc on the Mac (Just the look, `--look-only`) the sidebar and the
-  toolbars follow a fresh Arc: compact mode off and a single toolbar.
-- **Drag-to-split**: dropping a tab onto another splits the view over 70% of
-  the tab height after 250 ms instead of Zen's 20% and 500 ms.
-
-## Languages
-
-Zen keeps one set of language settings, so they come from Arc's first profile
-(`User Data/Default/Preferences`).
-
-- **Website languages**: Arc's preferred languages for sites
-  (`intl.accept_languages`), the languages Arc never translates and the ones it
-  always translates (`browser.translations.neverTranslateLanguages` /
-  `alwaysTranslateLanguages`), and the spellcheck dictionaries
-  (`spellchecker.dictionary`). Zen ships only the English (US) dictionary; for
-  any other one the log points to
-  [Firefox dictionaries](https://addons.mozilla.org/firefox/language-tools/),
-  and the next migration picks up a dictionary added there.
-- **Interface language**: Arc's menus and date formats follow macOS, so Zen is
-  set to do the same (`intl.locale.requested = ""`,
-  `intl.regional_prefs.use_os_locales = true`). A language picked for Arc alone
-  in System Settings → General → Language & Region → Applications is used
-  instead.
-
-## Profiles
-
-The GUI auto-detects common Arc and Zen profile locations. You can also browse
-to them manually.
-
-Common roots:
-
-- Arc macOS: `~/Library/Application Support/Arc`
-- Arc Windows: `%LOCALAPPDATA%\Packages\TheBrowserCompany.Arc_*\LocalCache\Local\Arc`
-- Zen macOS: `~/Library/Application Support/zen`
-- Zen Windows: `%APPDATA%\zen`
-- Zen Linux: `~/.zen` or the Zen Flatpak profile directory
-
-Zen profile resolution uses explicit selection first, then `ZEN_PROFILE_PATH`,
-`ZEN_PROFILE_NAME`, Zen defaults from `installs.ini` / `profiles.ini`, and
-finally the first profile containing `zen-sessions.jsonlz4`.
-
-Arc desktop Linux is not auto-detected because Arc desktop is currently known
-for macOS and Windows only.
-
-## Build
-
-Build a native package for the current OS:
-
-```bash
-pip install -e ".[build]"
-python scripts/build_desktop.py --version dev
-```
-
-Release builds are created by GitHub Actions when a `v*` tag is pushed.
+File formats, the Zen settings each option changes, how profiles are found, and
+how to build the app: [docs/how-it-works.md](docs/how-it-works.md).
