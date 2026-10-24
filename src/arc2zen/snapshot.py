@@ -72,6 +72,13 @@ class Snapshot:
         self.children = children
 
     @classmethod
+    def load(cls, root: str | Path) -> "Snapshot":
+        """An earlier snapshot, for another run that should roll back to the same point."""
+        root = Path(root)
+        manifest = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
+        return cls(root, Path(manifest["profile"]), manifest["entries"], manifest["children"])
+
+    @classmethod
     def take(cls, profile: Path) -> "Snapshot":
         profile = Path(profile)
         root = profile / f"{SNAPSHOT_PREFIX}{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -96,6 +103,11 @@ class Snapshot:
         """Move a folder a step is about to delete into the snapshot."""
         relative = Path(path).relative_to(self.profile).as_posix()
         target = self.root / "removed" / relative
+        parent, _, name = relative.rpartition("/")
+        # A folder an earlier run made, or one already kept, is not the profile's own: just delete it
+        if (parent in self.children and name not in self.children[parent]) or target.exists():
+            _remove(Path(path))
+            return
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(path), target)
         self.entries.append({"path": relative, "existed": True, "dir": True, "copy": f"removed/{relative}"})

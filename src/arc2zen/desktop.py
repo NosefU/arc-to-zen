@@ -58,7 +58,7 @@ from .profile_paths import (
     resolve_zen_profile,
     zen_profile_lock_files,
 )
-from .snapshot import discard, rollback
+from .snapshot import discard, rollback, snapshot_profile
 from .space_overview import SpaceOverview, arc_space_overview
 from .zen_assets import zen_selectable_icon_svg
 from .zen_runner import ZenRunnerError, find_zen_binary
@@ -738,9 +738,10 @@ class MigrationWorker(QThread):
     snapshot = Signal(str)
     done = Signal(bool, str)
 
-    def __init__(self, config: MigrationOptions):
+    def __init__(self, config: MigrationOptions, snapshot_dir: Optional[Path] = None):
         super().__init__()
         self.config = config
+        self.snapshot_dir = snapshot_dir
 
     def run(self):
         try:
@@ -750,7 +751,7 @@ class MigrationWorker(QThread):
 
     def _run(self):
         run_migration(self.config, emit_line=self.line.emit, on_step=self.step.emit,
-                      on_snapshot=lambda path: self.snapshot.emit(str(path)))
+                      on_snapshot=lambda path: self.snapshot.emit(str(path)), snapshot_dir=self.snapshot_dir)
         self.done.emit(True, "Migration finished successfully.")
 
 
@@ -860,7 +861,11 @@ class MainWindow(QMainWindow):
         self.step_notes: Dict[str, str] = {}
         self.step_infos: Dict[str, List[str]] = {}
         self.step_details: Dict[str, List[str]] = {}
-        # Backup of the Zen profile taken by the last run; deleted with the window
+        # Each Zen profile is backed up once, before its first run from this window, and later
+        # runs keep that backup, so rolling back undoes all of them. Deleted with the window.
+        self.snapshots: Dict[str, Path] = {}
+        self.runs: Dict[str, int] = {}
+        # The backup the result screen rolls back to: that of the last run's profile
         self.snapshot_dir: Optional[Path] = None
         self.rollback_state = ""  # "", "running", "done" or "failed"
         self.result_has_notes = False
@@ -1156,10 +1161,10 @@ class MainWindow(QMainWindow):
         confirm = QVBoxLayout(self.rollback_confirm)
         confirm.setContentsMargins(14, 12, 14, 12)
         confirm.setSpacing(8)
-        confirm_title = label("Roll Zen back to before the migration?")
-        confirm_title.setAlignment(Qt.AlignCenter)
-        confirm_title.setStyleSheet("font-weight: 600;")
-        confirm.addWidget(confirm_title)
+        self.rollback_confirm_title = label()
+        self.rollback_confirm_title.setAlignment(Qt.AlignCenter)
+        self.rollback_confirm_title.setStyleSheet("font-weight: 600;")
+        confirm.addWidget(self.rollback_confirm_title)
         self.rollback_confirm_text = label("", "muted", wrap=True)
         self.rollback_confirm_text.setAlignment(Qt.AlignCenter)
         confirm.addWidget(self.rollback_confirm_text)
@@ -1565,9 +1570,12 @@ class MainWindow(QMainWindow):
         if not self.ensure_zen_closed(config):
             self.refresh()
             return
-        # Only the last run can be rolled back
-        discard(self.snapshot_dir)
-        self.snapshot_dir = None
+        profile = self.profile_key(config)
+        kept = self.snapshots.get(profile)
+        if kept and not kept.is_dir():
+            kept = None
+        self.runs[profile] = self.runs.get(profile, 0) + 1 if kept else 1
+        self.snapshot_dir = kept
         self.rollback_state = ""
 
         while self.steps_layout.count():
@@ -1602,7 +1610,7 @@ class MainWindow(QMainWindow):
         self.running = True
         self.refresh()
 
-        self.worker = MigrationWorker(config)
+        self.worker = MigrationWorker(config, kept)
         self.worker.line.connect(self.append_log)
         self.worker.step.connect(self.update_step)
         self.worker.snapshot.connect(self.set_snapshot)
@@ -1697,7 +1705,7 @@ class MainWindow(QMainWindow):
         if not ok:
             self.result_title.setText("Migration stopped")
             reason = message if message.endswith(".") else f"{message}."
-            undo = " The steps before it already changed Zen; roll back to put it back as it was." if can_roll_back else ""
+            undo = f" The steps before it already changed Zen; roll back to put it back as it was {self.before_runs()}." if can_roll_back else ""
             self.result_text.setText(reason + undo)
         elif notes:
             self.result_title.setText(f"Migration complete with {count(len(notes), 'note')}")
@@ -1706,13 +1714,15 @@ class MainWindow(QMainWindow):
         else:
             self.result_title.setText("Migration complete")
             self.result_text.setText("Your Arc spaces are in Zen, ready to open.")
-        keep = "The backup is kept until you close this window."
+        keep = ("The backup from before the first migration is kept until you close this window."
+                if self.run_count() > 1 else "The backup is kept until you close this window.")
         self.result_hint.setText(f"Check your spaces in Zen. {keep}" if ok else keep)
         self.result_hint.setVisible(can_roll_back)
         self.rollback_link.setVisible(ok and can_roll_back)
         self.rollback_confirm.setVisible(False)
+        self.rollback_confirm_title.setText(f"Roll Zen back to {self.before_runs()}?")
         self.rollback_confirm_text.setText(
-            f"Everything this migration changed in {self.zen_target()} is undone: spaces, tabs, settings and sign-ins.")
+            f"Spaces, tabs, settings and sign-ins in {self.zen_target()} go back to how they were {self.before_runs()}.")
         self.result_rollback.setVisible(not ok and can_roll_back)
 
         while self.result_stats_layout.count():
@@ -1778,6 +1788,22 @@ class MainWindow(QMainWindow):
 
     def set_snapshot(self, path: str) -> None:
         self.snapshot_dir = Path(path)
+        self.snapshots[str(snapshot_profile(path))] = self.snapshot_dir
+
+    def profile_key(self, config: MigrationOptions) -> str:
+        try:
+            return str(resolve_zen_profile(config.zen_profile))
+        except Exception:
+            return str(config.zen_profile)
+
+    def run_count(self) -> int:
+        """Runs from this window the current backup covers."""
+        if not self.snapshot_dir:
+            return 0
+        return self.runs.get(next((p for p, d in self.snapshots.items() if d == self.snapshot_dir), ""), 1)
+
+    def before_runs(self) -> str:
+        return "before the first migration" if self.run_count() > 1 else "before the migration"
 
     def ask_rollback(self) -> None:
         self.rollback_link.setVisible(False)
@@ -1803,7 +1829,7 @@ class MainWindow(QMainWindow):
             return
         self.rollback_state = "running"
         self.show_rollback_state("…", ACCENT, "Rolling back…",
-                                 f"Putting back the files of {self.zen_target()} as they were before the migration.")
+                                 f"Putting back the files of {self.zen_target()} as they were {self.before_runs()}.")
         self.rollback_worker = RollbackWorker(self.snapshot_dir)
         self.rollback_worker.line.connect(self.log.append)
         self.rollback_worker.done.connect(self.finish_rollback)
@@ -1813,8 +1839,12 @@ class MainWindow(QMainWindow):
         if ok:
             self.rollback_state = "done"
             self.show_rollback_state("↺", ACCENT, "Zen is back as it was",
-                                     f"Everything this migration changed in {self.zen_target()} is undone. "
+                                     f"{self.zen_target()} is now exactly as it was {self.before_runs()}. "
                                      "Fix what went wrong and start over, or close the window.")
+            # The backup still holds the profile as it is now: the next run starts counting anew
+            for profile, kept in self.snapshots.items():
+                if kept == self.snapshot_dir:
+                    self.runs[profile] = 0
             self.result_action.setText("Start over")
             self.result_action.setObjectName("Primary")
             restyle(self.result_action)
@@ -1846,7 +1876,8 @@ class MainWindow(QMainWindow):
         if self.running or self.rollback_state == "running":
             event.ignore()
             return
-        discard(self.snapshot_dir)
+        for kept in self.snapshots.values():
+            discard(kept)
         super().closeEvent(event)
 
 

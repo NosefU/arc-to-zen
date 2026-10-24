@@ -70,7 +70,9 @@ Everything is on one screen:
 - **Backup and rollback**: before the first step the Zen profile is backed up,
   always. Until the window is closed, a failed run offers **Roll back** and a
   finished one **Something went wrong? Roll back**; either puts the profile back
-  exactly as it was. Closing the window deletes the backup.
+  exactly as it was. The backup is taken before the window's first run on that
+  profile, and later runs (after **Start over**) keep it, so rolling back returns
+  Zen to how it was before any of them. Closing the window deletes the backup.
 
 Close Arc first, then open Zen when the migration is done.
 

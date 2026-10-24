@@ -78,7 +78,9 @@ first and can be undone with `--rollback <backup folder>`.
     nuke mode.
   - Offers runtime options for skipping `Orphaned` and closing Zen automatically.
   - Offers to roll back to the run's backup on the result screen and deletes the
-    backup when the window closes.
+    backup when the window closes. Each Zen profile is backed up once, before its
+    first run from the window; later runs pass that backup to `run_migration`
+    (`snapshot_dir`), so rolling back undoes all of them.
   - Confirms a replacing migration in the footer, closes only the Zen running the target profile
     (found by its `.parentlock` / `parent.lock`), then streams migration
     progress into the UI and ends on a result screen.
@@ -96,6 +98,8 @@ first and can be undone with `--rollback <backup folder>`.
     other than localStorage (`storage/default/*/ls`), into
     `<profile>/arc-to-zen-backup-<time>/` with a manifest that also records what
     did not exist yet. `rollback()` restores it and deletes what the run created.
+    `Snapshot.load()` reuses a backup for a later run; `preserve()` then only
+    deletes folders an earlier run created, so they do not come back.
     Steps get `create_backups=False`; their own backups are for running a module
     by itself.
 

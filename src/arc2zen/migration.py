@@ -432,19 +432,22 @@ def run_migration(
     emit_line: LineCallback | None = None,
     on_step: StepCallback | None = None,
     on_snapshot: SnapshotCallback | None = None,
+    snapshot_dir: str | Path | None = None,
 ) -> bool:
     """Run a complete Arc to Zen migration.
 
     The Zen profile is backed up first, always; on_snapshot gets the backup folder,
     which snapshot.rollback() restores. The steps themselves make no backups.
+    With snapshot_dir, a backup an earlier run took is kept instead, so rolling back
+    undoes both runs.
     """
     if options.export_file is not None:
         export_path = Path(options.export_file).expanduser()
-        return _run_migration_with_export(options, export_path, emit_line, on_step, on_snapshot)
+        return _run_migration_with_export(options, export_path, emit_line, on_step, on_snapshot, snapshot_dir)
 
     with tempfile.TemporaryDirectory(prefix="arc-to-zen-") as temp_dir:
         export_path = Path(temp_dir) / "arc_pinned_tabs_export.json"
-        return _run_migration_with_export(options, export_path, emit_line, on_step, on_snapshot)
+        return _run_migration_with_export(options, export_path, emit_line, on_step, on_snapshot, snapshot_dir)
 
 
 def _run_migration_with_export(
@@ -453,6 +456,7 @@ def _run_migration_with_export(
     emit_line: LineCallback | None,
     on_step: StepCallback | None,
     on_snapshot: SnapshotCallback | None,
+    snapshot_dir: str | Path | None = None,
 ) -> bool:
     ensure_zen_profile_free(options.zen_profile)
     steps = migration_steps(options, export_file)
@@ -466,7 +470,11 @@ def _run_migration_with_export(
             root_logger.setLevel(logging.INFO)
 
     try:
-        snapshot = Snapshot.take(resolve_zen_profile(options.zen_profile))
+        if snapshot_dir:
+            snapshot = Snapshot.load(snapshot_dir)
+            _report(emit_line, f"✅ Keeping the backup from before the first migration: {snapshot.root.name}")
+        else:
+            snapshot = Snapshot.take(resolve_zen_profile(options.zen_profile))
         if on_snapshot:
             on_snapshot(snapshot.root)
         set_active_snapshot(snapshot)
