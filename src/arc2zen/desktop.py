@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from ctypes.util import find_library
@@ -960,6 +961,7 @@ class RollbackWorker(QThread):
             self.done.emit(True, "")
         except Exception as exc:
             self.line.emit(f"❌ Rollback failed: {exc}")
+            self.line.emit(traceback.format_exc().rstrip())
             self.done.emit(False, str(exc))
 
 

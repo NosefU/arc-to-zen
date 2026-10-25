@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 import sys
 import tempfile
+import time
+import traceback
 from dataclasses import dataclass, fields, replace
 from pathlib import Path
 from typing import Callable, Iterable
@@ -13,6 +15,7 @@ from .arc_urls import convert_arc_url
 from .boosts import migrate_boosts
 from .containers import sync_containers
 from .cookies import migrate_cookies
+from .diagnostics import header_lines, run_lines
 from .link_routing import ARC_HAS_LINK_ROUTING, migrate_link_routing
 from .local_storage import migrate_local_storage
 from .arc_look_mod import install_arc_look_mod
@@ -121,9 +124,12 @@ class CallbackLogHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
-            message = self.format(record)
+            # The traceback goes on lines of its own: the window takes a "❌" line as the step's note
+            message = record.getMessage()
             if message:
                 self.emit_line(message)
+            if record.exc_info:
+                self.emit_line(self.formatter.formatException(record.exc_info))
         except Exception:
             self.handleError(record)
 
@@ -489,6 +495,10 @@ def run_migration(
         return _run_migration_with_export(options, export_path, emit_line, on_step, on_snapshot, snapshot_dir)
 
 
+class StepFailed(RuntimeError):
+    """A step that returned False; it has already logged why."""
+
+
 def _run_migration_with_export(
     options: MigrationOptions,
     export_file: Path,
@@ -509,6 +519,8 @@ def _run_migration_with_export(
             root_logger.setLevel(logging.INFO)
 
     try:
+        for line in header_lines(options.arc_profile, options.zen_profile) + run_lines(options):
+            _report(emit_line, line)
         if snapshot_dir:
             snapshot = Snapshot.load(snapshot_dir)
             _report(emit_line, f"✅ Keeping the backup from before the first migration: {snapshot.root.name}")
@@ -521,8 +533,18 @@ def _run_migration_with_export(
             if on_step:
                 on_step(index, len(steps), step.title)
             _report(emit_line, f"\n[{index}/{len(steps)}] {step.title}")
-            if step.operation() is False:
-                raise RuntimeError(f"{step.title} failed")
+            started = time.monotonic()
+            result = step.operation()
+            _report(emit_line, f"   took {time.monotonic() - started:.1f} s")
+            if result is False:
+                raise StepFailed(f"{step.title} failed")
+    except StepFailed:
+        raise
+    except Exception:
+        # The window shows only the message; its log keeps where it came from. The CLI prints the traceback itself
+        if emit_line:
+            emit_line(traceback.format_exc().rstrip())
+        raise
     finally:
         set_active_snapshot(None)
         if handler:

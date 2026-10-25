@@ -180,7 +180,7 @@ def migrate_cookies(
     try:
         decryptor = ChromiumCookieDecryptor(arc_decryptor(arc_profile))
     except CookieDecryptionError as exc:
-        logger.error(f"❌ {exc}")
+        logger.error(f"❌ {exc}", exc_info=True)
         return False
 
     if create_backups:
@@ -208,7 +208,7 @@ def migrate_cookies(
         con.commit()
     except CookieDecryptionError as exc:
         con.rollback()
-        logger.error(f"❌ {exc}")
+        logger.error(f"❌ {exc}", exc_info=True)
         return False
     finally:
         con.close()

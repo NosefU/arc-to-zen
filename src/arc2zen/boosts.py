@@ -170,7 +170,7 @@ def migrate_boosts(
     try:
         boosts = arc_boosts(arc_profile)
     except LevelDBError as exc:
-        logger.error(f"❌ Could not read Arc boosts: {exc}")
+        logger.error(f"❌ Could not read Arc boosts: {exc}", exc_info=True)
         return False
     if not boosts:
         logger.info("No Arc boosts found")

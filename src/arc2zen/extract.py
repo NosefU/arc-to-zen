@@ -152,7 +152,7 @@ class ArcPinnedTabExtractor:
             )
 
         except Exception as e:
-            logger.error(f"Failed to parse StorableSidebar.json: {e}")
+            logger.error(f"Failed to parse StorableSidebar.json: {e}", exc_info=True)
             return []
 
     def _parse_local_sidebar_data(
@@ -1071,7 +1071,7 @@ class ArcPinnedTabExtractor:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to export to JSON: {e}")
+            logger.error(f"Failed to export to JSON: {e}", exc_info=True)
             return False
 
     def get_extraction_summary(self, arc_spaces: List[ArcSpace]) -> Dict:

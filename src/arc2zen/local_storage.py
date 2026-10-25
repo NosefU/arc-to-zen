@@ -122,7 +122,7 @@ def migrate_local_storage(
         try:
             by_origin = read_arc_local_storage(leveldb_dir, stats)
         except LevelDBError as exc:
-            logger.error(f"❌ Could not read localStorage of Arc profile {arc_profile_name!r}: {exc}")
+            logger.error(f"❌ Could not read localStorage of Arc profile {arc_profile_name!r}: {exc}", exc_info=True)
             return False
         keys = sum(len(items) for items in by_origin.values())
         skipped = ", ".join(f"{count} {kind}" for kind, count in stats.items() if count) or "none"
@@ -150,7 +150,7 @@ def migrate_local_storage(
                     f"{totals['failedOrigins']} sites rejected"
                 )
     except ZenRunnerError as exc:
-        logger.error(f"❌ {exc}")
+        logger.error(f"❌ {exc}", exc_info=True)
         return False
 
     logger.info("Done. localStorage copied into Zen.")

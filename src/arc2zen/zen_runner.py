@@ -16,6 +16,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any, Iterator, List, Optional
@@ -115,6 +116,18 @@ return true;
 """
 
 
+def log_output_tail(output, process: subprocess.Popen, lines: int = 40) -> None:
+    """The end of what the headless Zen printed, and whether it is still running."""
+    try:
+        output.flush()
+        output.seek(0)
+        tail = output.read().decode("utf-8", errors="replace").splitlines()[-lines:]
+    except OSError:
+        return
+    state = "still running" if process.poll() is None else f"exited with code {process.returncode}"
+    logger.info(f"   Headless Zen {state}; its last output:\n" + ("\n".join(tail) or "(nothing)"))
+
+
 @contextlib.contextmanager
 def zen_session(profile: Path) -> Iterator[MarionetteClient]:
     """Start a headless Zen on profile and yield a chrome-context Marionette client.
@@ -135,7 +148,9 @@ def zen_session(profile: Path) -> Iterator[MarionetteClient]:
     env = {key: value for key, value in os.environ.items() if key not in PROXY_ENV_VARS}
     command = [str(binary), "-profile", str(profile), "-no-remote", "-headless", "--marionette", "-remote-allow-system-access"]
     logger.info(f"   Starting headless Zen on {profile.name}")
-    process = subprocess.Popen(command, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Kept to show in the log when something goes wrong; Zen's output is noisy otherwise
+    output = tempfile.TemporaryFile()
+    process = subprocess.Popen(command, env=env, stdout=output, stderr=subprocess.STDOUT)
     client = None
     try:
         client = MarionetteClient(port)
@@ -143,6 +158,9 @@ def zen_session(profile: Path) -> Iterator[MarionetteClient]:
         if actual != profile:
             raise ZenRunnerError(f"Connected to a Zen running another profile ({actual}); stopping.")
         yield client
+    except Exception:
+        log_output_tail(output, process)
+        raise
     finally:
         if client:
             try:
@@ -155,6 +173,7 @@ def zen_session(profile: Path) -> Iterator[MarionetteClient]:
         except subprocess.TimeoutExpired:
             process.terminate()
             process.wait(timeout=15)
+        output.close()
         if original_user_js is None:
             user_js.unlink(missing_ok=True)
         else:

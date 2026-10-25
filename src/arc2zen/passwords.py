@@ -151,7 +151,7 @@ def migrate_passwords(
     try:
         decryptor = arc_decryptor(arc_profile)
     except ArcDecryptionError as exc:
-        logger.error(f"❌ {exc}")
+        logger.error(f"❌ {exc}", exc_info=True)
         return False
 
     logins: List[Dict[str, Any]] = []
@@ -185,7 +185,7 @@ def migrate_passwords(
     try:
         result = run_in_zen(profile, ADD_LOGINS_SCRIPT, [logins])
     except ZenRunnerError as exc:
-        logger.error(f"❌ {exc}")
+        logger.error(f"❌ {exc}", exc_info=True)
         return False
     if result.get("error") == "primary-password":
         logger.error("❌ The Zen profile has a Primary Password; remove it in Zen settings and run again.")

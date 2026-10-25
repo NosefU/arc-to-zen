@@ -627,7 +627,7 @@ def import_arc_export(
     try:
         profile = resolve_zen_profile(zen_profile)
     except Exception as e:
-        logger.error(f"❌ Zen profile not found: {e}")
+        logger.error(f"❌ Zen profile not found: {e}", exc_info=True)
         return False
 
     logger.info(f"✅ Using profile: {profile.name}")
