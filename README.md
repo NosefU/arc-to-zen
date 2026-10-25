@@ -49,7 +49,9 @@ Pick the archive for your OS:
 - macOS Apple Silicon: `macos-arm64`
 - macOS Intel: `macos-x64`
 - Windows: `windows-x64`
-- Linux: `linux-x64`
+
+`SHA256SUMS.txt` next to the archives holds their checksums: compare it with
+`shasum -a 256 <archive>` on macOS or `Get-FileHash <archive>` on Windows.
 
 <details>
 <summary>macOS: opening the unsigned app</summary>

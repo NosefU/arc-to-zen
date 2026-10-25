@@ -87,7 +87,7 @@ def run_pyinstaller(label: str) -> Path:
     if system_name() in {"darwin", "windows"}:
         command.insert(command.index("--name"), "--windowed")
     if system_name() == "darwin":
-        command.extend(["--osx-bundle-identifier", "com.thinkscape.arc-to-zen"])
+        command.extend(["--osx-bundle-identifier", "io.github.nosefu.arc-to-zen"])
 
     subprocess.run(command, cwd=REPO_ROOT, check=True)
 

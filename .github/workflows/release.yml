@@ -22,8 +22,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
-            platform_label: linux-x64
           - os: windows-2022
             platform_label: windows-x64
           - os: macos-15-intel
@@ -73,6 +71,10 @@ jobs:
         with:
           path: release-assets
           merge-multiple: true
+
+      - name: Add checksums
+        working-directory: release-assets
+        run: sha256sum * > SHA256SUMS.txt
 
       - name: Create or update release
         shell: bash
