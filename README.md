@@ -92,7 +92,8 @@ Everything is on one screen.
     colors. Without Arc it is the only preset.
   - **Safety**: close Zen automatically if it's open (only the Zen running the
     target profile; other Zen windows keep running), and where Essentials that
-    belong to no space go.
+    belong to no space go. On Windows also close Arc for cookies and boosts (see
+    below).
 - **Footer**: how much goes, whether it is **added to what's there** (spaces
   with the same name are updated, the rest of Zen stays) or **replaces Zen's
   contents** (tabs, folders, bookmarks, workspaces and containers Arc doesn't
@@ -111,7 +112,9 @@ time.
 
 Arc can stay open: the migrator only reads its files. Quitting Arc first makes
 sure its latest changes, like a tab moved or a site signed into a moment ago,
-are on disk.
+are on disk. Arc for Windows is the exception for cookies and boosts: it locks
+them while it runs, so the app closes Arc before the migration, as with its
+close button. Without **Close Arc if needed** it asks you to quit Arc.
 
 ### Backup and rollback
 

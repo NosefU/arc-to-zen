@@ -19,6 +19,10 @@ The migrator only reads Arc's files; nothing in Arc is changed.
 - localStorage and boosts are Chromium LevelDB stores, parsed in pure Python
   from both the table (`.ldb`) and log (`.log`) files. If Arc compacts a store
   while it is read, the step can fail; running again helps.
+- Arc for Windows opens `Network/Cookies` and the boosts' Firestore cache
+  without letting other programs read them, so while it runs those two can't be
+  read at all. The app finds `Arc.exe` and, with Close Arc if needed, posts
+  `WM_CLOSE` to its windows and waits up to 15 seconds for it to quit.
 
 ## Backup and rollback
 

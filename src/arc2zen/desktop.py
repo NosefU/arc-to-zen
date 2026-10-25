@@ -108,6 +108,7 @@ QLabel[role="small"] {{ color: {MUTED}; font-size: 12px; }}
 QLabel[role="caps"] {{ color: {MUTED}; font-size: 11px; font-weight: 600; letter-spacing: 1px; }}
 QLabel[role="ok"] {{ color: {OK}; font-size: 12px; }}
 QLabel[role="warn"] {{ color: {WARN}; font-size: 12px; }}
+QLabel[role="note"] {{ color: {MUTED}; font-size: 12px; }}
 QLabel[role="error"] {{ color: {DANGER}; font-size: 12px; }}
 QFrame#Card {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 12px; }}
 QFrame#Aside {{ background: transparent; border: 0; border-right: 1px solid {LINE}; }}
@@ -377,6 +378,17 @@ def zen_processes() -> list[psutil.Process]:
     return processes
 
 
+def arc_processes() -> list[psutil.Process]:
+    processes = []
+    for process in psutil.process_iter(["pid", "name"]):
+        try:
+            if (process.info.get("name") or "").lower() == "arc.exe":
+                processes.append(process)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return processes
+
+
 def zen_processes_using_profile(profile: str | Path) -> list[psutil.Process]:
     """Return only the Zen processes running the given profile."""
     profile_path = Path(profile).expanduser().resolve()
@@ -417,9 +429,10 @@ def close_windows(pids: set[int]) -> None:
     user32.EnumWindows(close, 0)
 
 
-def terminate_zen_processes(processes: list[psutil.Process]) -> list[psutil.Process]:
+def terminate_processes(processes: list[psutil.Process]) -> list[psutil.Process]:
     if sys.platform == "win32":
         # terminate() is TerminateProcess on Windows, after which Zen offers to restore a crashed session
+        # and Arc may lose its latest tabs
         close_windows({process.pid for process in processes})
     else:
         for process in processes:
@@ -905,12 +918,16 @@ class Choice:
     key: str  # MigrationOptions field, or "" for the always-on core import
     label: str
     hint: str
-    depends_on: str = ""
+    # On only while any of these is on; needs is the hint until then
+    depends_on: tuple[str, ...] = ()
+    needs: str = ""
 
 
 # Arc keeps its key in the macOS Keychain; on Windows it is unlocked for the signed-in user without asking
 KEYCHAIN_NOTE = "macOS will ask once for access to “Arc Safe Storage” in your Keychain." if sys.platform == "darwin" else ""
 THIS_COMPUTER = "this Mac" if sys.platform == "darwin" else "this computer"
+# While it runs, Arc for Windows keeps its cookies and boosts from being read; Arc for macOS doesn't
+ARC_LOCKS_FILES = sys.platform == "win32"
 # Where a fresh Arc shows the address, for "just the look" without Arc
 ARC_DEFAULT_ADDRESS = "in a top bar" if ARC_WINDOWS_TOP_BAR else "in it"
 
@@ -926,7 +943,7 @@ CATEGORIES = [
         Choice("workspace_icons", "Space icons", "Emoji and built-in icons"),
         Choice("workspace_themes", "Space colors", "Gradients and colors from Arc themes"),
         Choice("default_theme", "Arc default colors", "Spaces without a theme get Arc's pink-to-lavender gradient",
-               depends_on="workspace_themes"),
+               depends_on=("workspace_themes",), needs="Turn on space colors first"),
     ], "", ()),
     ("Sign-ins", [
         Choice("containers", "Profiles → containers", "Each space opens in its Arc profile's container"),
@@ -954,6 +971,11 @@ CATEGORIES = [
 
 # Not part of the presets
 SAFETY = [
+    *([Choice("auto_close_arc", "Close Arc if needed",
+              "For cookies and boosts: Arc for Windows locks them while it runs. Arc is closed as with its close button.",
+              depends_on=("cookies", "boosts"),
+              needs="Only for cookies and boosts, which Arc for Windows locks while it runs")]
+      if ARC_LOCKS_FILES else []),
     Choice("auto_close_zen", "Close Zen if needed", "Only the Zen running this profile"),
     Choice("skip_orphaned", "Skip “Orphaned”", "Unmatched Essentials go to the first selected space"),
 ]
@@ -988,6 +1010,8 @@ class MainWindow(QMainWindow):
         self.values: Dict[str, bool] = preset_values("all")
         self.values.update({c.key: True for c in SAFETY})
         self.values["nuke"] = False
+        self.arc_running = False
+        self.arc_status: tuple = ()
         self.choices: Dict[str, Choice] = {c.key: c for _, cs, _, _ in CATEGORIES for c in cs if c.key}
         self.choices.update({c.key: c for c in SAFETY})
         self.space_rows: List[SpaceRow] = []
@@ -1037,6 +1061,7 @@ class MainWindow(QMainWindow):
         self.zen_combo.currentTextChanged.connect(self.refresh_zen_status)
         self.reload_spaces()
         self.refresh_zen_status()
+        self.refresh_arc_running()
         (self.download_zen if self.zen_state == "missing" else self.go_button).setFocus()
 
     # ----- building -------------------------------------------------------
@@ -1205,6 +1230,11 @@ class MainWindow(QMainWindow):
             note_label = label(note, "warn", wrap=True)
             self.notes.append((note_label, note_keys))
             right.addWidget(note_label)
+        if title == "Safety":
+            # What closing Arc is for; shown while Arc is open and locks what was picked
+            self.arc_note = label("", "note", wrap=True)
+            self.arc_note.setVisible(False)
+            right.addWidget(self.arc_note)
         layout.addLayout(right, 1)
         return row
 
@@ -1459,7 +1489,7 @@ class MainWindow(QMainWindow):
         if key in ARC_LOOK_KEYS and not self.arc_ok:
             return False
         depends_on = self.choices[key].depends_on
-        return not depends_on or self.values[depends_on]
+        return not depends_on or any(self.values[other] for other in depends_on)
 
     def preset(self) -> str:
         if self.look_mode:
@@ -1509,6 +1539,8 @@ class MainWindow(QMainWindow):
             self.reload_spaces()
         if key == "auto_close_zen":
             self.refresh_zen_status()
+        if key == "auto_close_arc":
+            self.refresh_arc_running()
         self.refresh()
 
     def chosen_spaces(self) -> List[SpaceOverview]:
@@ -1556,7 +1588,7 @@ class MainWindow(QMainWindow):
             self.look_mode = self.arc_forced = False
         if not self.arc_ok:
             missing = not self.arc_combo.currentText()
-            self.arc_endpoint.set_status("Arc", f"Not found on {THIS_COMPUTER}" if missing else "No Arc data here",
+            self.set_arc_status("Arc", f"Not found on {THIS_COMPUTER}" if missing else "No Arc data here",
                                          OFF if missing else DANGER,
                                          f"{path}\nChoose the folder with StorableSidebar.json.")
             self.spaces_message.setText(
@@ -1567,10 +1599,10 @@ class MainWindow(QMainWindow):
             try:
                 overview = arc_space_overview(arc_profile, include_orphaned=not self.values["skip_orphaned"])
             except Exception as exc:
-                self.arc_endpoint.set_status("Arc", "Could not read spaces", DANGER, f"{path}\n{exc}")
+                self.set_arc_status("Arc", "Could not read spaces", DANGER, f"{path}\n{exc}")
             else:
                 profiles = {space.arc_profile for space in overview if space.arc_profile}
-                self.arc_endpoint.set_status("Arc", f"{len(overview)} spaces, {len(profiles)} profiles", OK, path)
+                self.set_arc_status("Arc", f"{len(overview)} spaces, {len(profiles)} profiles", OK, path)
                 if not overview:
                     self.spaces_message.setText("This Arc folder has no spaces with tabs.")
                     self.spaces_message.setVisible(True)
@@ -1581,6 +1613,22 @@ class MainWindow(QMainWindow):
             self.space_rows.append(row)
             self.spaces_list.addWidget(row)
         self.refresh()
+
+    def set_arc_status(self, *status) -> None:
+        self.arc_status = status
+        self.arc_endpoint.set_status(*status)
+
+    def refresh_arc_running(self) -> None:
+        if ARC_LOCKS_FILES:
+            self.arc_running = bool(arc_processes())
+        self.refresh()
+
+    def arc_locked_items(self) -> str:
+        """What of the choice a running Arc for Windows keeps from being read: "cookies", "boosts", both or ""."""
+        v = self.values
+        if not (ARC_LOCKS_FILES and self.arc_running and self.arc_ok and not self.look_mode):
+            return ""
+        return " and ".join(name for name in ("cookies", "boosts") if v[name])
 
     def set_all_spaces(self, checked: bool) -> None:
         for row in self.space_rows:
@@ -1765,7 +1813,7 @@ class MainWindow(QMainWindow):
                 chip.setToolTip(choice.hint)
             else:
                 chip.setToolTip(f"Needs Arc on {THIS_COMPUTER}" if key in ARC_LOOK_KEYS and not self.arc_ok
-                                else "Turn on space colors first")
+                                else choice.needs)
             chip.setProperty("dimmed", "false" if enabled else "true")
             restyle(chip)
         for note, keys in self.notes:
@@ -1805,6 +1853,8 @@ class MainWindow(QMainWindow):
                 line.setVisible(shown and not first)
             first = first and not shown
         self.chips["skip_orphaned"].setVisible(not look)
+        if ARC_LOCKS_FILES:
+            self.chips["auto_close_arc"].setVisible(not look)
         self.look_note.setVisible(look)
         self.look_note_text.setText(
             "Your tabs, spaces and sign-ins in Zen stay as they are. Only how Zen looks changes. "
@@ -1853,6 +1903,10 @@ class MainWindow(QMainWindow):
             text = ("Install Zen and open it once, then come back — or choose its profile folder in the Zen card "
                     "above." if missing else
                     "Choose a Zen profile folder, or Zen's data folder with profiles.ini, in the Zen card above.")
+        locked = self.arc_locked_items()
+        if zen_ok and locked and not v["auto_close_arc"]:
+            title, title_color = "Quit Arc first", WARN
+            text, color = f"Arc for Windows locks its {locked} while it runs.", MUTED
         if self.confirming:
             title_color = TEXT
             title = f"Replace everything in {self.zen_target()}?"
@@ -1887,6 +1941,19 @@ class MainWindow(QMainWindow):
         self.aside.setEnabled(idle and spaces_matter)
         self.aside_fade.setOpacity(1.0 if idle and spaces_matter else 0.5)
         self.arc_endpoint.setEnabled(idle)
+        if locked and idle:
+            closing = f"closes for {locked}" if v["auto_close_arc"] else f"locks {locked}"
+            self.arc_endpoint.set_status("Arc", f"Open · {closing}", WARN, self.arc_status[3],
+                                         "" if v["auto_close_arc"] else "warn")
+        elif self.arc_status:
+            self.arc_endpoint.set_status(*self.arc_status)
+        self.arc_note.setVisible(bool(locked))
+        if locked:
+            self.arc_note.setText(f"Arc is open. It quits before the migration, so its {locked} can be read."
+                                  if v["auto_close_arc"] else
+                                  f"Arc is open and locks its {locked}. Quit Arc, or turn on Close Arc if needed.")
+            self.arc_note.setProperty("role", "note" if v["auto_close_arc"] else "warn")
+            restyle(self.arc_note)
         self.zen_endpoint.setEnabled(idle)
         # While confirming the warning needs the room; Cancel brings the choice back
         self.add_mode.setVisible(idle and not self.confirming and not look)
@@ -1939,7 +2006,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Invalid selection", str(exc))
             self.refresh()
             return
-        if not self.ensure_zen_closed(config):
+        if not self.ensure_zen_closed(config) or not self.ensure_arc_closed(config):
             self.refresh()
             return
         profile = self.profile_key(config)
@@ -2013,7 +2080,7 @@ class MainWindow(QMainWindow):
             )
             return False
 
-        alive = terminate_zen_processes(processes)
+        alive = terminate_processes(processes)
         if alive:
             alive = kill_zen_processes(alive)
 
@@ -2021,6 +2088,29 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Zen is still running", "Zen is still running. Migration was not started.")
             return False
 
+        return True
+
+    def ensure_arc_closed(self, config: MigrationOptions) -> bool:
+        """Arc for Windows has to quit before its cookies and boosts can be read."""
+        if not ARC_LOCKS_FILES or not (config.cookies or config.boosts):
+            return True
+        processes = arc_processes()
+        if not processes:
+            return True
+        if not self.values["auto_close_arc"]:
+            locked = " and ".join(name for name in ("cookies", "boosts") if getattr(config, name))
+            QMessageBox.critical(
+                self,
+                "Arc is running",
+                f"Arc is running and automatic close is disabled.\n\nArc for Windows locks its {locked} while it "
+                "runs. Quit Arc and start the migration again, or turn on Close Arc if needed.",
+            )
+            return False
+        # Arc isn't killed: it would lose what it hasn't saved yet
+        if terminate_processes(processes):
+            QMessageBox.critical(self, "Arc is still running", "Arc did not quit. Migration was not started.")
+            return False
+        self.arc_running = False
         return True
 
     def append_log(self, line: str):
@@ -2261,6 +2351,7 @@ class MainWindow(QMainWindow):
         # Back in the window after installing Zen or Arc: look for them again
         if event.type() == QEvent.ActivationChange and self.isActiveWindow() and not self.running and not self.finished:
             QTimer.singleShot(0, self.rediscover_profiles)
+            QTimer.singleShot(0, self.refresh_arc_running)
         super().changeEvent(event)
 
     def rediscover_profiles(self) -> None:
