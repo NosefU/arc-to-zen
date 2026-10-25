@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arc to Zen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Move your Arc spaces, pinned tabs, folders, sign-ins and settings into Zen, or just make Zen look like Arc. Free for macOS and Windows.">
+<meta property="og:title" content="Arc to Zen">
+<meta property="og:description" content="Move your Arc spaces, tabs, sign-ins and settings into Zen, or just make Zen look like Arc.">
+<meta property="og:image" content="assets/hero.jpg">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one calm column; the hero sets the app on Arc's own pink-to-lavender gradient,
+   its real screens play a migration, Arc's sidebar flies into Zen's, and the features read like the app's chips. */
+:root {
+  --ground: #f1f0f6;      /* the app's window ground */
+  --paper: #ffffff;
+  --ink: #1b1a22;
+  --muted: #5e5b6b;
+  --line: #e3e1eb;
+  --accent: #4b3fe0;      /* the app's Migrate button */
+  --accent-ink: #3a2fc4;
+  --accent-soft: #eeecfd;
+  --ok: #1f7a4d;
+  --coral: #ff684f;       /* the app icon's rings */
+  --arc-a: #fff1f2;       /* Arc's default space theme */
+  --arc-b: #e3e3ff;
+  --zen: #23222c;         /* Zen's dark sidebar */
+  --zen-2: #2e2d39;
+  --zen-ink: #ecebf3;
+  --shadow: 0 1px 2px rgba(27, 26, 34, .05), 0 24px 60px -20px rgba(40, 30, 110, .28);
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Onest", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #121117; --paper: #1c1b22; --ink: #f1f0f5; --muted: #a9a6b6; --line: #34323f;
+    --accent: #7c72ff; --accent-ink: #b4aeff; --accent-soft: #2a2748; --ok: #4fcb8c;
+    --arc-a: #3a2433; --arc-b: #26254a; --zen: #0f0e14; --zen-2: #1d1c25;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 24px 60px -20px rgba(0, 0, 0, .7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #121117; --paper: #1c1b22; --ink: #f1f0f5; --muted: #a9a6b6; --line: #34323f;
+  --accent: #7c72ff; --accent-ink: #b4aeff; --accent-soft: #2a2748; --ok: #4fcb8c;
+  --arc-a: #3a2433; --arc-b: #26254a; --zen: #0f0e14; --zen-2: #1d1c25;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 24px 60px -20px rgba(0, 0, 0, .7);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font: 400 17px/1.6 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--accent-ink); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1120px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: -.02em; }
+h2 { font-size: clamp(30px, 4.2vw, 46px); font-weight: 800; }
+h3 { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 60ch; }
+.eyebrow { font: 600 12px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+/* Top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 22px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 18px/1 var(--display); color: var(--ink); text-decoration: none; }
+.brand img { width: 30px; height: 30px; }
+.top nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.top nav a { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 15px; padding: 8px 10px; border-radius: 8px; }
+.top nav a:hover { color: var(--ink); background: var(--paper); }
+.top nav .gh { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); border: 1px solid var(--line); background: var(--paper); }
+.gh svg { width: 16px; height: 16px; fill: currentColor; }
+
+/* Hero */
+.hero { padding-block: 48px 0; display: grid; gap: 28px; }
+.hero h1 { font-size: clamp(44px, 8.4vw, 104px); font-weight: 800; letter-spacing: -.035em; }
+.hero h1 .to { display: inline-flex; align-items: center; color: var(--accent); }
+.hero h1 .to svg { width: .82em; height: .82em; }
+.hero h1 .word { display: inline-block; }
+.hero .lede { font-size: clamp(18px, 2.1vw, 22px); line-height: 1.5; }
+.cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 22px;
+  border-radius: 12px; border: 0; background: var(--accent); color: #fff; text-decoration: none;
+  font: 600 16px/1 var(--body); box-shadow: 0 10px 24px -10px var(--accent);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -12px var(--accent); }
+.btn svg { width: 18px; height: 18px; fill: currentColor; }
+.btn small { font-weight: 500; opacity: .8; }
+.alt { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 15px; color: var(--muted); }
+.alt a { font-weight: 500; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 14px; }
+.meta span { display: inline-flex; align-items: center; gap: 7px; }
+.meta span::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--coral); }
+
+/* The app on Arc's gradient: its real screens play a migration, then Zen opens beside it */
+.stage {
+  position: relative; margin-top: 30px; padding: clamp(18px, 4vw, 56px);
+  border-radius: 28px; overflow: hidden; isolation: isolate;
+  background: linear-gradient(135deg, var(--arc-a), var(--arc-b));
+}
+.stage::before, .stage::after {
+  content: ""; position: absolute; z-index: -1; border-radius: 50%; filter: blur(60px); opacity: .55;
+}
+.stage::before { width: 46%; aspect-ratio: 1; left: -8%; top: -20%; background: var(--arc-a); animation: drift 18s ease-in-out infinite alternate; }
+.stage::after { width: 40%; aspect-ratio: 1; right: -6%; bottom: -24%; background: var(--accent-soft); animation: drift 22s ease-in-out infinite alternate-reverse; }
+@keyframes drift { to { transform: translate(12%, 10%) scale(1.1); } }
+.window { border-radius: 14px; overflow: hidden; background: var(--paper); box-shadow: var(--shadow); }
+.window .bar { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; background: var(--paper); border-bottom: 1px solid var(--line); }
+.window .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); }
+.window .bar b { flex: 1; text-align: center; font: 600 12px/1 var(--body); color: var(--muted); margin-right: 52px; }
+.duo { position: relative; }
+.duo .app { transition: transform .8s cubic-bezier(.3, .7, .2, 1), opacity .8s; transform-origin: left center; }
+.duo.zen-up .app { transform: translateX(-6%) scale(.86); opacity: .55; }
+.screen { position: relative; }
+.screen .frame { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+.screen .frame.on { opacity: 1; }
+.screen .frame.soft { transition: opacity .25s; }
+.cursor { position: absolute; z-index: 999; left: 70%; top: 115%; width: 22px; height: 22px; margin: -2px 0 0 -3px; pointer-events: none; transition: left 1s cubic-bezier(.45, 0, .2, 1), top 1s cubic-bezier(.45, 0, .2, 1); filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .3)); }
+.cursor svg { display: block; transition: transform .12s; }
+.cursor.down svg { transform: scale(.85); }
+.ring { position: absolute; z-index: 998; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 2px solid var(--accent); pointer-events: none; animation: ring .55s ease-out forwards; }
+@keyframes ring { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.3); opacity: 0; } }
+.zenwin { position: absolute; z-index: 4; right: 0; top: 6%; width: 64%; height: 88%; display: grid; grid-template-columns: 32% 1fr; border-radius: 12px; overflow: hidden; color: var(--zen-ink); font-size: clamp(9px, 1.15vw, 13px); line-height: 1.25;
+  /* Zen tints the window with the space's theme: here Arc's default pink-to-lavender */
+  background: linear-gradient(170deg, color-mix(in srgb, #e86a9a 20%, var(--zen)), color-mix(in srgb, #7c72ff 18%, var(--zen)));
+  box-shadow: 0 30px 80px -20px rgba(20, 10, 60, .6); opacity: 0; transform: translateX(14%) scale(.96); transition: transform .8s cubic-bezier(.2, .8, .2, 1), opacity .5s; }
+.duo.zen-up .zenwin { opacity: 1; transform: none; }
+.zsb { display: flex; flex-direction: column; gap: .6em; min-width: 0; padding: .8em .6em .6em; }
+.z-top { display: flex; align-items: center; gap: .45em; padding: 0 .2em; }
+.z-top i { width: .8em; height: .8em; border-radius: 50%; background: rgba(255, 255, 255, .22); }
+.z-top i:nth-child(1) { background: #ff5f57; } .z-top i:nth-child(2) { background: #febc2e; } .z-top i:nth-child(3) { background: #28c840; }
+.z-top span { margin-left: auto; display: flex; gap: .7em; color: var(--zen-dim); }
+.z-top svg { width: 1.1em; height: 1.1em; display: block; }
+.z-url { display: flex; align-items: center; gap: .5em; padding: .55em .7em; border-radius: .7em; background: rgba(255, 255, 255, .08); color: var(--zen-dim); white-space: nowrap; overflow: hidden; }
+.z-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .5em; overflow: hidden; }
+.z-body > * { opacity: 0; transform: translateY(6px); transition: opacity .3s, transform .3s; }
+.z-body > .in { opacity: 1; transform: none; }
+.z-ess { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4em; }
+.z-ess span { aspect-ratio: 1.3; border-radius: .6em; background: rgba(255, 255, 255, .09); display: grid; place-items: center; }
+.z-ess b { width: 1.4em; height: 1.4em; border-radius: .3em; }
+.z-space { display: flex; align-items: center; gap: .5em; font-weight: 700; padding: .2em .3em; }
+.z-row { display: flex; align-items: center; gap: .55em; padding: .45em .5em; border-radius: .55em; white-space: nowrap; overflow: hidden; }
+.z-row.on { background: rgba(255, 255, 255, .12); }
+.z-row b { flex-shrink: 0; width: 1.2em; height: 1.2em; border-radius: .25em; }
+.z-row .fold-ic { width: 1.3em; height: 1.3em; }
+.z-row.new { color: var(--zen-dim); }
+.z-kids { padding-left: 1em; }
+.z-line { height: 1px; margin: .2em .4em; background: rgba(255, 255, 255, .12); }
+.z-foot { display: flex; align-items: center; justify-content: space-between; padding: .3em .2em 0; color: var(--zen-dim); }
+.z-foot > span { font-size: 1.3em; line-height: 1; }
+.z-foot div { display: flex; gap: .25em; }
+.z-foot div span { display: grid; place-items: center; width: 1.9em; height: 1.9em; border-radius: .5em; filter: grayscale(.6); opacity: .7; }
+.z-foot div span.on { background: rgba(255, 255, 255, .12); filter: none; opacity: 1; }
+/* The web page, framed with Zen's margin and rounded corners */
+.zpage { margin: .7em .7em .7em 0; border-radius: .8em; overflow: hidden; background: var(--paper); box-shadow: 0 2px 10px rgba(0, 0, 0, .25); display: grid; align-content: start; gap: 1em; padding: 1.2em 1.4em; }
+.zpage i { display: block; height: .7em; border-radius: .3em; background: var(--line); }
+.zpage .nav { display: flex; align-items: center; gap: .8em; }
+.zpage .nav b { width: 1.4em; height: 1.4em; border-radius: .4em; background: #4a7fe0; }
+.zpage .nav i { width: 3.5em; height: .55em; }
+.zpage .nav i:first-of-type { margin-left: auto; }
+.zpage .hero-b { height: 7em; border-radius: .7em; background: linear-gradient(120deg, color-mix(in srgb, #4a7fe0 30%, var(--paper)), color-mix(in srgb, #3aa776 26%, var(--paper))); }
+.zpage i.h { height: 1.3em; width: 60%; background: color-mix(in srgb, var(--ink) 22%, var(--line)); }
+.zpage .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7em; }
+.zpage .cards span { height: 4.5em; border-radius: .6em; background: var(--ground); border: 1px solid var(--line); }
+.fold-ic { flex-shrink: 0; width: 18px; height: 18px; display: block; opacity: .8; }
+
+/* The sidebar section: Arc's sidebar moves into Zen's, piece by piece */
+.sb-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: clamp(28px, 5vw, 64px); align-items: center; }
+.sb-steps { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 10px; }
+.sb-steps li { display: flex; gap: 12px; align-items: baseline; color: var(--muted); transition: color .3s; }
+.sb-steps li::before { content: ""; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--line); transform: translateY(-1px); transition: background .3s, box-shadow .3s; }
+.sb-steps li.on { color: var(--ink); }
+.sb-steps li.on::before { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.sb-stage { position: relative; padding: clamp(14px, 3vw, 32px); border-radius: 28px; background: linear-gradient(135deg, var(--arc-a), var(--arc-b)); }
+.sb-sides { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.sb { border-radius: 16px; padding: 12px; min-height: 430px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; line-height: 1.3; box-shadow: var(--shadow); }
+.sb.arc { background: linear-gradient(165deg, #ffd5dc, #d6d4ff); color: #2a2433; }
+.sb.zen { background: var(--zen); color: var(--zen-ink); }
+.sb .sb-who { display: flex; justify-content: space-between; font: 700 11px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; opacity: .55; padding: 2px 4px 4px; }
+.sb .sb-ess { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.sb .sb-ess > span { aspect-ratio: 1.25; border-radius: 9px; display: grid; place-items: center; }
+.sb.arc .sb-ess > span { background: rgba(255, 255, 255, .6); }
+.sb.zen .sb-ess > span { background: var(--zen-2); }
+.sb.zen .sb-ess > span.slot { background: transparent; outline: 1.5px dashed rgba(255, 255, 255, .12); outline-offset: -1.5px; }
+.fav { flex-shrink: 0; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; color: #fff; font: 700 10px/1 var(--body); }
+.sb .sb-space { display: flex; align-items: center; gap: 7px; font-weight: 700; padding: 6px 4px 2px; }
+.sb .sb-list { display: grid; gap: 3px; }
+.sb .sb-tab, .sb .sb-folder > .sb-head { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border-radius: 8px; white-space: nowrap; overflow: hidden; }
+.sb.arc .sb-tab, .sb.arc .sb-folder > .sb-head { background: rgba(255, 255, 255, .45); }
+.sb.zen .sb-tab, .sb.zen .sb-folder > .sb-head { background: rgba(255, 255, 255, .06); }
+.sb-folder .sb-kids { display: grid; gap: 3px; padding: 3px 0 0 14px; }
+.sb-folder.closed .sb-kids { display: none; }
+.sb .sb-sep { display: flex; align-items: center; gap: 8px; margin: 6px 4px; font: 600 11px/1 var(--body); opacity: .5; }
+.sb .sb-sep::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .4; }
+.sb .moved { opacity: .22; transition: opacity .3s; }
+.sb .hide { visibility: hidden; }
+.sb .landed { animation: land .45s cubic-bezier(.2, .8, .2, 1.25); }
+@keyframes land { from { transform: scale(.92); opacity: .4; } }
+/* A flying copy sits in a sidebar of its own, so it keeps the sidebar's type and sizes */
+.sb.flyer { position: absolute; z-index: 5; display: block; min-height: 0; padding: 0; border-radius: 9px; box-shadow: 0 16px 34px -10px rgba(40, 30, 110, .5); pointer-events: none; transform-origin: 0 0; transition: transform .65s cubic-bezier(.5, 0, .2, 1); }
+.sb-sides { transition: opacity .45s; }
+.sb-sides.faded { opacity: 0; }
+.sb .sb-track { position: relative; flex: 1; overflow: hidden; margin: -4px; padding: 4px; }
+.sb .sb-pane { display: flex; flex-direction: column; gap: 8px; }
+.sb .sb-pane.slide { transition: transform .5s cubic-bezier(.4, 0, .2, 1); }
+.sb .sb-foot { margin-top: auto; display: flex; justify-content: center; gap: 6px; padding-top: 10px; }
+.sb .sb-foot > span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; font: 700 13px/1 var(--body); transition: background .3s, opacity .3s; opacity: .55; }
+.sb .sb-foot > span.on { opacity: 1; }
+.sb.arc .sb-foot > span.on { background: rgba(255, 255, 255, .6); }
+.sb.zen .sb-foot > span.on { background: var(--zen-2); }
+.sb.zen .sb-foot > span.slot { opacity: 1; outline: 1.5px dashed rgba(255, 255, 255, .12); outline-offset: -1.5px; }
+.sb.flyer > .sb-foot { display: block; height: 100%; padding: 0; }
+.sb.flyer > .sb-foot > span { width: 100%; height: 100%; opacity: 1; background: transparent; }
+.sb.flyer > .sb-ess { display: block; height: 100%; }
+.sb.flyer > .sb-ess > span { height: 100%; aspect-ratio: auto; background: transparent; }
+.sb.flyer .sb-tab, .sb.flyer .sb-folder > .sb-head { background: transparent; }
+.sb-arrow { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 1; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--paper); color: var(--accent); box-shadow: var(--shadow); font: 700 16px/1 var(--body); }
+
+/* Sections */
+section { padding-block: clamp(72px, 10vw, 120px) 0; }
+.head { display: grid; gap: 14px; margin-bottom: 36px; }
+
+/* What comes along: the app's own rows of chips */
+.rows { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); }
+.row { display: grid; grid-template-columns: 140px 1fr; gap: 10px 20px; padding: 18px 22px; align-items: start; }
+.row + .row { border-top: 1px solid var(--line); }
+.row h3 { font: 600 15px/1.2 var(--body); padding-top: 9px; letter-spacing: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.chip {
+  position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 14px;
+  border-radius: 18px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent-ink);
+  font-weight: 600; font-size: 14px; cursor: default; transition: transform .18s ease;
+}
+.chip::before { content: "✓"; font-weight: 700; }
+.chip:hover, .chip:focus-visible { transform: translateY(-2px); }
+.chip .tip {
+  position: absolute; left: 50%; bottom: calc(100% + 10px); z-index: 5; width: max-content; max-width: 260px;
+  /* Shown only on hover, so a hidden tip never sticks out past the screen's edge */
+  display: none; transform: translate(-50%, 0); pointer-events: none;
+  padding: 8px 11px; border-radius: 8px; background: var(--ink); color: var(--paper); font: 400 13px/1.4 var(--body);
+}
+.chip:hover .tip, .chip:focus-visible .tip { display: block; animation: tip-in .18s ease-out; }
+@keyframes tip-in { from { opacity: 0; transform: translate(-50%, 4px); } }
+.chip.mac::after { content: "macOS"; font: 600 10px/1 var(--body); letter-spacing: .06em; padding: 3px 6px; border-radius: 5px; background: var(--paper); color: var(--muted); }
+.row-note { grid-column: 2; font-size: 14px; color: var(--muted); }
+
+/* Presets */
+.presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.preset { padding: 22px; border-radius: var(--radius); background: var(--paper); border: 1.5px solid var(--line); display: grid; gap: 10px; align-content: start; }
+.preset.on { border-color: var(--accent); background: linear-gradient(var(--accent-soft), var(--paper)); }
+.preset .tag { justify-self: start; font: 600 12px/1 var(--body); padding: 5px 9px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); }
+.preset .tag.green { background: color-mix(in srgb, var(--ok) 14%, var(--paper)); color: var(--ok); }
+.preset p { color: var(--muted); font-size: 15px; }
+
+/* Screens */
+.screens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+figure { margin: 0; display: grid; gap: 14px; }
+figure .window { transition: transform .35s ease; }
+figure:hover .window { transform: translateY(-4px); }
+figcaption { color: var(--muted); font-size: 15px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+
+/* Safety */
+.safe { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.safe div { display: grid; gap: 10px; align-content: start; padding-top: 18px; border-top: 2px solid var(--ink); }
+.safe p { color: var(--muted); font-size: 15px; }
+
+/* Download */
+.get { margin-top: clamp(72px, 10vw, 120px); padding: clamp(28px, 5vw, 56px); border-radius: 28px; background: var(--paper); border: 1px solid var(--line); display: grid; gap: 28px; }
+.get-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 20px; }
+.files { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.file { display: grid; gap: 4px; padding: 16px 18px; border-radius: 12px; border: 1px solid var(--line); text-decoration: none; color: var(--ink); background: var(--ground); transition: border-color .2s, transform .2s; }
+.file:hover { border-color: var(--accent); transform: translateY(-2px); }
+.file b { font-weight: 600; }
+.file span { color: var(--muted); font: 400 12px/1.4 var(--mono); overflow-wrap: anywhere; }
+.file.here { border-color: var(--accent); background: var(--accent-soft); }
+.notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; font-size: 15px; color: var(--muted); }
+.notes b { color: var(--ink); }
+
+footer { padding-block: 56px 40px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; color: var(--muted); font-size: 14px; }
+footer a { color: var(--muted); }
+
+/* Load sequence; everything stays readable without it */
+@media (prefers-reduced-motion: no-preference) {
+  .js .hero h1 .word { animation: rise .8s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--i) * 90ms); }
+  .js .hero .lede, .js .hero .cta, .js .hero .meta { animation: rise .8s .35s cubic-bezier(.2, .7, .2, 1) both; }
+  .js .stage .duo { animation: lift 1.1s .45s cubic-bezier(.2, .7, .2, 1) both; }
+  .js .reveal { transition: transform .8s cubic-bezier(.2, .7, .2, 1); }
+  .js .reveal.below { transform: translateY(26px); }
+}
+@keyframes rise { from { transform: translateY(.45em); opacity: .001; } }
+@keyframes lift { from { transform: translateY(40px) scale(.98); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+}
+
+@media (max-width: 860px) {
+  .presets, .safe, .files { grid-template-columns: 1fr; }
+  .screens, .notes { grid-template-columns: 1fr; }
+  .row { grid-template-columns: 1fr; }
+  .row h3 { padding-top: 0; }
+  .row-note { grid-column: 1; }
+  /* Zen opens over the app here too, wider so its sidebar stays readable */
+  .zenwin { width: 90%; height: 104%; top: -2%; grid-template-columns: 44% 1fr; }
+  .duo.zen-up .app { transform: translateX(-3%) scale(.94); }
+  .sb-wrap { grid-template-columns: 1fr; }
+  .sb-arrow { display: none; }
+}
+/* On a phone Arc and Zen stay side by side, just smaller, so tabs still fly left to right */
+@media (max-width: 560px) {
+  .sb-stage { padding: 10px; border-radius: 20px; }
+  .sb-sides { gap: 8px; }
+  .sb { min-height: 0; padding: 8px; gap: 6px; font-size: 11px; border-radius: 12px; }
+  .sb .sb-who { font-size: 9px; padding: 2px 2px 2px; }
+  .sb .sb-ess { gap: 4px; }
+  .sb .sb-ess > span { border-radius: 6px; }
+  .sb .fav { width: 14px; height: 14px; font-size: 8px; border-radius: 4px; }
+  .sb .fold-ic { width: 14px; height: 14px; }
+  .sb .sb-tab, .sb .sb-folder > .sb-head { height: 24px; gap: 6px; padding: 0 6px; border-radius: 6px; }
+  .sb-folder .sb-kids { padding-left: 8px; }
+  .sb .sb-space { padding: 4px 2px 0; }
+  .sb .sb-sep { margin: 4px 2px; font-size: 9px; }
+  .sb .sb-foot { gap: 2px; padding-top: 8px; }
+  .sb .sb-foot > span { width: 22px; height: 22px; font-size: 11px; border-radius: 6px; }
+  .top nav a:not(.gh) { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <a class="brand" href="#"><img src="assets/icon.svg" alt="" width="30" height="30">Arc to Zen</a>
+  <nav aria-label="Page">
+    <a href="#moves">What moves</a>
+    <a href="#safe">Safety</a>
+    <a href="#download">Download</a>
+    <a class="gh" href="https://github.com/NosefU/arc-to-zen"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+  </nav>
+</header>
+
+<main>
+<div class="hero">
+  <h1><span class="word" style="--i:0">Arc</span> <span class="word to" style="--i:1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="to"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></svg></span> <span class="word" style="--i:2">Zen,</span><br><span class="word" style="--i:3">everything</span> <span class="word" style="--i:4">along.</span></h1>
+  <p class="lede">Your spaces, pinned tabs and folders, sign-ins, boosts and settings move into Zen in one go. Or keep Zen as it is and give it Arc's look.</p>
+  <div class="cta">
+    <a class="btn" id="primary" href="https://github.com/NosefU/arc-to-zen/releases/latest"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 011 1v9.6l3.3-3.3a1 1 0 111.4 1.4l-5 5a1 1 0 01-1.4 0l-5-5a1 1 0 111.4-1.4L11 13.6V4a1 1 0 011-1zM5 19h14a1 1 0 010 2H5a1 1 0 010-2z"/></svg><span id="primary-label">Download</span> <small id="primary-version"></small></a>
+    <div class="alt" id="alt"><a href="#download">macOS and Windows downloads</a></div>
+  </div>
+  <div class="meta"><span>Free and open source</span><span>macOS and Windows</span><span>Backs up Zen first</span></div>
+
+  <div class="stage" id="stage">
+    <div class="duo" id="duo">
+      <div class="window app">
+        <div class="bar"><i></i><i></i><i></i><b>Arc to Zen</b></div>
+        <div class="screen" id="screen"><img src="assets/choices.webp" alt="Arc to Zen with four Arc spaces picked and the Arc as it was preset" width="2360" height="1600"></div>
+      </div>
+      <div class="zenwin" aria-hidden="true">
+        <div class="zsb">
+          <div class="z-top"><i></i><i></i><i></i><span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3"/></svg></span></div>
+          <div class="z-url">flights.example</div>
+          <div class="z-body" id="zsb"></div>
+          <div class="z-foot"><span>⚙</span><div><span class="on">🪐</span><span>💼</span><span>📚</span><span>S</span></div><span>+</span></div>
+        </div>
+        <div class="zpage"><div class="nav"><b></b><i></i><i></i><i></i></div><div class="hero-b"></div><i class="h"></i><i></i><i style="width:82%"></i><div class="cards"><span></span><span></span><span></span></div><i style="width:90%"></i><i style="width:70%"></i><i style="width:84%"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section id="sidebar" class="reveal">
+  <div class="sb-wrap">
+    <div class="head">
+      <span class="eyebrow">The sidebar</span>
+      <h2>Everything stays where you put it</h2>
+      <p class="lede">Each Arc space becomes a Zen space with the same layout, icon and colors.</p>
+      <ul class="sb-steps" id="sb-steps">
+        <li data-k="spaces">Spaces, with their icons and colors</li>
+        <li data-k="ess">Essentials stay at the top</li>
+        <li data-k="fold">Folders, open or closed</li>
+        <li data-k="pin">Pinned tabs, in their order</li>
+        <li data-k="today">Unpinned tabs too</li>
+      </ul>
+    </div>
+    <div class="sb-stage">
+      <div class="sb-sides" id="sb-sides" aria-hidden="true">
+        <div class="sb arc" id="sb-arc"></div>
+        <div class="sb zen" id="sb-zen"></div>
+        <div class="sb-arrow">→</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="moves" class="reveal">
+  <div class="head">
+    <span class="eyebrow">What comes along</span>
+    <h2>The parts of Arc you'd miss</h2>
+    <p class="lede">Each item is a switch in the app, grouped the same way. Hover one to see what it does.</p>
+  </div>
+  <div class="rows">
+    <div class="row"><h3>Tabs</h3><div class="chips">
+      <span class="chip" tabindex="0">Spaces, tabs, folders, Essentials<span class="tip">Pinned and open tabs, nested folders and Essentials, in the space they belong to</span></span>
+      <span class="chip" tabindex="0">Site icons<span class="tip">From Arc's icon cache, so tabs don't start blank</span></span>
+      <span class="chip" tabindex="0">Folder open/closed<span class="tip">Folders stay expanded or collapsed as in Arc</span></span>
+      <span class="chip" tabindex="0">Split views<span class="tip">Their tabs come along, side by side</span></span>
+    </div></div>
+    <div class="row"><h3>Look</h3><div class="chips">
+      <span class="chip" tabindex="0">Space icons<span class="tip">Emoji and Arc's built-in icons</span></span>
+      <span class="chip" tabindex="0">Space colors<span class="tip">Gradients and colors from Arc themes</span></span>
+      <span class="chip" tabindex="0">Arc default colors<span class="tip">Spaces without a theme get Arc's pink-to-lavender gradient</span></span>
+    </div></div>
+    <div class="row"><h3>Sign-ins</h3><div class="chips">
+      <span class="chip" tabindex="0">Profiles → containers<span class="tip">Each Arc profile becomes a Zen container, and its spaces open in it</span></span>
+      <span class="chip" tabindex="0">Cookies<span class="tip">Stay signed in to sites, per container</span></span>
+      <span class="chip" tabindex="0">localStorage<span class="tip">Site settings and some sign-ins, per container</span></span>
+      <span class="chip" tabindex="0">Passwords<span class="tip">Into Zen's password manager</span></span>
+    </div></div>
+    <div class="row"><h3>Rules</h3><div class="chips">
+      <span class="chip" tabindex="0">Boosts<span class="tip">CSS and hidden elements per site, as Zen boosts</span></span>
+      <span class="chip mac" tabindex="0">Air Traffic Control<span class="tip">Rules that open links in a space become Zen Space Routing</span></span>
+    </div></div>
+    <div class="row"><h3>Languages</h3><div class="chips">
+      <span class="chip" tabindex="0">Website languages<span class="tip">Languages sites are asked for, what never to translate, the spellcheck dictionary</span></span>
+      <span class="chip" tabindex="0">Interface language<span class="tip">Menus and date formats follow the system, as in Arc</span></span>
+    </div></div>
+    <div class="row"><h3>Zen setup</h3><div class="chips">
+      <span class="chip" tabindex="0">Arc Look mod<span class="tip">Compact top bar, an Arc-like address bar that floats, Arc-style Peek</span></span>
+      <span class="chip" tabindex="0">Sidebar like Arc<span class="tip">A hidden Arc sidebar starts Zen in compact mode</span></span>
+      <span class="chip" tabindex="0">Toolbars like Arc<span class="tip">Single or separate toolbars, as Arc shows the address</span></span>
+      <span class="chip" tabindex="0">Easier drag-to-split<span class="tip">Drop a tab on another to split the view: wider target, half the delay</span></span>
+    </div></div>
+  </div>
+</section>
+
+<section class="reveal">
+  <div class="head">
+    <span class="eyebrow">Three ways in</span>
+    <h2>Bring a little, or all of it</h2>
+  </div>
+  <div class="presets">
+    <div class="preset"><h3>Just tabs</h3><p>Spaces, tabs and how they look. Nothing else in Zen changes.</p></div>
+    <div class="preset on"><span class="tag green">Recommended</span><h3>Arc as it was</h3><p>Everything above: sign-ins, boosts, routing, languages and an Arc-like Zen.</p></div>
+    <div class="preset"><span class="tag">No migration</span><h3>Just the look</h3><p>Zen keeps its tabs and spaces and gets Arc's look. Works without Arc installed.</p></div>
+  </div>
+</section>
+
+<section class="reveal">
+  <div class="screens">
+    <figure>
+      <div class="window"><div class="bar"><i></i><i></i><i></i><b>Arc to Zen</b></div><img src="assets/choices.webp" alt="Choosing spaces and items" loading="lazy" width="2360" height="1600"></div>
+      <figcaption><b>One screen.</b> Pick spaces on the left, a preset or single items on the right, and press Migrate.</figcaption>
+    </figure>
+    <figure>
+      <div class="window"><div class="bar"><i></i><i></i><i></i><b>Arc to Zen</b></div><img src="assets/result.webp" alt="A finished migration with its numbers and Open Zen" loading="lazy" width="2360" height="1600"></div>
+      <figcaption><b>Done in seconds.</b> See what landed in Zen, open it, or roll back if it isn't right.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="safe" class="reveal">
+  <div class="head">
+    <span class="eyebrow">Safe to try</span>
+    <h2>Nothing you can't undo</h2>
+  </div>
+  <div class="safe">
+    <div><h3>Zen is backed up first</h3><p>Before the first step, every time. One click puts Zen back exactly as it was, until you close the window.</p></div>
+    <div><h3>Arc is only read</h3><p>Arc's files are opened read-only and nothing in Arc changes. Cookies and passwords are decrypted in memory and never written out in plain text.</p></div>
+  </div>
+</section>
+
+<section id="download" class="reveal">
+  <div class="get">
+    <div class="get-top">
+      <div class="head" style="margin:0">
+        <span class="eyebrow" id="release-name">Latest release</span>
+        <h2>Download Arc to Zen</h2>
+      </div>
+      <a class="btn" href="https://github.com/NosefU/arc-to-zen/releases/latest">All releases</a>
+    </div>
+    <div class="files">
+      <a class="file" data-asset="macos-arm64" href="https://github.com/NosefU/arc-to-zen/releases/latest"><b>macOS, Apple Silicon</b><span>arc-to-zen-…-macos-arm64.zip</span></a>
+      <a class="file" data-asset="macos-x64" href="https://github.com/NosefU/arc-to-zen/releases/latest"><b>macOS, Intel</b><span>arc-to-zen-…-macos-x64.zip</span></a>
+      <a class="file" data-asset="windows-x64" href="https://github.com/NosefU/arc-to-zen/releases/latest"><b>Windows</b><span>arc-to-zen-…-windows-x64.zip</span></a>
+    </div>
+    <div class="notes">
+      <p><b>First start on macOS.</b> The app isn't signed yet, so macOS blocks it once. Open System Settings, then Privacy &amp; Security, and click Open Anyway next to Arc to Zen.</p>
+      <p><b>First start on Windows.</b> If SmartScreen stops it, click More info, then Run anyway. Each release lists <code style="font:500 13px var(--mono)">SHA256SUMS.txt</code> to check the download.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <span>© 2025 Artur Bodera · © 2026 Valko Dmitry · MIT licensed · Based on <a href="https://github.com/Thinkscape/arc-to-zen">Thinkscape/arc-to-zen</a> · Not affiliated with The Browser Company or Zen</span>
+  <span><a href="https://github.com/NosefU/arc-to-zen">Source</a> · <a href="https://github.com/NosefU/arc-to-zen/issues/new/choose">Report a problem</a></span>
+</footer>
+</div>
+
+<script>
+(() => {
+  document.documentElement.classList.add("js");
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  // Arc's folder icon: shut when the folder is closed, open when it is open
+  const folderIcon = (open) => open
+    ? `<svg class="fold-ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2.5 15.5V5a1 1 0 0 1 1-1h4l2 2h6a1 1 0 0 1 1 1v1.5"/><path d="M2.5 15.5 5 9h13l-2.6 6.5z"/></svg>`
+    : `<svg class="fold-ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2.5 15V5a1 1 0 0 1 1-1h4l2 2h7a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1z"/></svg>`;
+  // Runs `loop` once `node` first comes into view
+  const whenSeen = (node, loop) => {
+    if (!("IntersectionObserver" in window)) return loop();
+    const io = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) { io.disconnect(); loop(); } });
+    io.observe(node);
+  };
+
+  // The hero: real screens of the app play a run, a cursor uses it, and Zen opens with the result
+  const screen = document.getElementById("screen"), duo = document.getElementById("duo"), zsb = document.getElementById("zsb");
+  const colors = ["#e0567a", "#4a7fe0", "#f0a030", "#3aa776", "#6b4fd8", "#c0563a"];
+  const zenRows = [
+    el("div", "z-ess", colors.slice(0, 4).map((c) => `<span><b style="background:${c}"></b></span>`).join("")),
+    el("div", "z-space", "🪐 Personal"),
+    el("div", "z-row", `${folderIcon(true)}Trips`),
+    el("div", "z-kids", `<div class="z-row on"><b style="background:${colors[1]}"></b>Flights</div><div class="z-row"><b style="background:${colors[3]}"></b>Hotel</div>`),
+    el("div", "z-row", `${folderIcon(false)}Recipes`),
+    el("div", "z-row", `<b style="background:${colors[4]}"></b>Bank`),
+    el("div", "z-row", `<b style="background:${colors[5]}"></b>Notes`),
+    el("div", "z-row", `<b style="background:${colors[0]}"></b>Calendar`),
+    el("div", "z-line"),
+    el("div", "z-row new", "+&nbsp; New Tab"),
+    el("div", "z-row", `<b style="background:${colors[1]}"></b>Weather`),
+    el("div", "z-row", `<b style="background:${colors[2]}"></b>Cinema times`),
+    el("div", "z-row", `<b style="background:${colors[3]}"></b>Train tickets`),
+    el("div", "z-row", `<b style="background:${colors[4]}"></b>Packing list`),
+  ];
+  zenRows.forEach((r) => zsb.appendChild(r));
+  const heroRun = async () => {
+    // The progress screens load after the page itself: every other step, then the result
+    const names = ["01", "03", "05", "07", "09", "11", "13", "15", "16"].map((n) => `assets/run/s${n}.webp`).concat("assets/result.webp");
+    const frames = names.map((src, i) => { const f = el("img", "frame" + (i === names.length - 1 ? " soft" : "")); f.alt = ""; f.src = src; screen.appendChild(f); return f; });
+    await Promise.all(frames.map((f) => f.decode().catch(() => {})));
+    const cur = el("div", "cursor", `<svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 2l15 9.5-6.6 1.3 3.9 7.4-2.7 1.4-3.9-7.5L4 19z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`);
+    screen.appendChild(cur);
+    let shown = -1, z = 1;
+    // The new frame goes on top and the old one is dropped once it is covered; -1 is the first screen underneath
+    const show = (i) => {
+      const old = frames[shown];
+      if (i >= 0) { frames[i].style.zIndex = ++z; frames[i].classList.add("on"); }
+      else frames.forEach((f) => f.classList.remove("on"));
+      shown = i;
+      if (old && i >= 0) setTimeout(() => { if (old !== frames[shown]) old.classList.remove("on"); }, 300);
+    };
+    const move = async (x, y, ms) => { cur.style.transitionDuration = `${ms}ms`; cur.style.left = `${x * 100}%`; cur.style.top = `${y * 100}%`; await wait(ms); };
+    const click = async () => {
+      const r = el("div", "ring"); r.style.left = cur.style.left; r.style.top = cur.style.top; screen.appendChild(r);
+      cur.classList.add("down"); await wait(130); cur.classList.remove("down"); setTimeout(() => r.remove(), 600);
+    };
+    // Where things are on the app's screens, as fractions of the screenshot
+    const at = { personal: [.16, .23], preset: [.56, .25], chip: [.5, .38], migrate: [.9, .928], openZen: [.58, .565] };
+    for (;;) {
+      show(-1); cur.style.transitionDuration = "0ms"; cur.style.left = "70%"; cur.style.top = "115%";
+      await wait(900);
+      await move(...at.personal, 1100); await wait(400);
+      await move(...at.preset, 800); await wait(350);
+      await move(...at.chip, 700); await wait(300);
+      await move(...at.migrate, 900); await wait(200);
+      await click(); await wait(250);
+      for (let i = 0; i < frames.length - 1; i++) { show(i); await wait(i === 0 ? 600 : 380 + Math.random() * 160); }
+      show(frames.length - 1); await wait(900);
+      await move(...at.openZen, 1000); await wait(200);
+      await click(); await wait(300);
+      duo.classList.add("zen-up"); await wait(700);
+      for (const r of zenRows) { r.classList.add("in"); await wait(150); }
+      await wait(3800);
+      duo.classList.remove("zen-up"); zenRows.forEach((r) => r.classList.remove("in")); await wait(900);
+    }
+  };
+  if (!calm) addEventListener("load", () => heroRun(), { once: true });
+
+  // The sidebar section: Essentials, folders, pinned and unpinned tabs fly from Arc's sidebar into Zen's
+  const spaces = [
+    { name: "Personal", icon: "🪐", ess: [["M", "#d9534f"], ["C", "#4a7fe0"], ["P", "#f0a030"], ["Y", "#e0567a"]],
+      folders: [["Trips", true, [["Flights", "#4a7fe0"], ["Hotel", "#3aa776"]]], ["Recipes", false, [["Soup", "#c0563a"], ["Bread", "#d08a1a"]]]],
+      pinned: [["Bank", "#6b4fd8"], ["Notes", "#2f9e8f"]], today: [["Weather", "#4a7fe0"], ["Cinema times", "#e0567a"]] },
+    { name: "Work", icon: "💼", ess: [["T", "#6b4fd8"], ["D", "#4a7fe0"], ["R", "#2f9e8f"], ["K", "#f0a030"]],
+      folders: [["Launch", true, [["Roadmap", "#2f9e8f"], ["Design review", "#e0567a"], ["Specs", "#4a7fe0"]]], ["Hiring", false, [["Candidates", "#3aa776"]]]],
+      pinned: [["Team chat", "#6b4fd8"]], today: [["Standup notes", "#d08a1a"], ["Bug 1042", "#c0563a"]] },
+  ];
+  const arcBar = document.getElementById("sb-arc"), zenBar = document.getElementById("sb-zen"), sides = document.getElementById("sb-sides");
+  const tabHtml = ([t, c]) => `<span class="fav" style="background:${c}">${t[0]}</span>${t}`;
+  const essIcon = ([t, c]) => el("span", "", `<span class="fav" style="background:${c}">${t}</span>`);
+  // All spaces of Arc, shown in the switcher at the bottom of the sidebar
+  const switcher = ["🪐", "💼", "📚", "S"];
+  // One space's part of the sidebar: Essentials, its title, pinned tabs and folders, unpinned tabs
+  const pane = (s, filled) => {
+    const box = el("div", "sb-pane");
+    const ess = el("div", "sb-ess");
+    s.ess.forEach((e) => ess.appendChild(filled ? essIcon(e) : el("span", "slot")));
+    box.appendChild(ess);
+    box.appendChild(el("div", "sb-space", `${s.icon} ${s.name}`));
+    const pin = el("div", "sb-list"); pin.dataset.part = "pin";
+    if (filled) {
+      s.folders.forEach(([n, open, kids]) => {
+        const f = el("div", "sb-folder" + (open ? "" : " closed"), `<div class="sb-head">${folderIcon(open)}${n}</div>`);
+        const k = el("div", "sb-kids"); kids.forEach((t) => k.appendChild(el("div", "sb-tab", tabHtml(t)))); f.appendChild(k); pin.appendChild(f);
+      });
+      s.pinned.forEach((t) => pin.appendChild(el("div", "sb-tab", tabHtml(t))));
+    }
+    box.appendChild(pin);
+    box.appendChild(el("div", "sb-sep", "Today"));
+    const today = el("div", "sb-list"); today.dataset.part = "today";
+    if (filled) s.today.forEach((t) => today.appendChild(el("div", "sb-tab", tabHtml(t))));
+    box.appendChild(today);
+    return box;
+  };
+  const build = (box, s, who, filled, withSpaces = filled) => {
+    box.innerHTML = "";
+    box.appendChild(el("div", "sb-who", `<span>${who}</span>`));
+    const track = el("div", "sb-track"); track.appendChild(pane(s, filled)); box.appendChild(track);
+    const foot = el("div", "sb-foot");
+    switcher.forEach((icon) => foot.appendChild(withSpaces ? el("span", icon === s.icon ? "on" : "", icon) : el("span", "slot")));
+    box.appendChild(foot);
+  };
+  build(arcBar, spaces[0], "Arc", true); build(zenBar, spaces[0], "Zen", true);
+  // Switching to the next space slides the old one out to the left and the new one in, as Arc and Zen do
+  const slide = async (box, s, filled) => {
+    const track = box.querySelector(".sb-track"), old = track.firstChild, next = pane(s, filled);
+    Object.assign(old.style, { position: "absolute", left: `${old.offsetLeft}px`, top: `${old.offsetTop}px`, width: `${old.offsetWidth}px` });
+    next.style.transform = "translateX(calc(100% + 8px))";
+    track.appendChild(next);
+    box.querySelectorAll(".sb-foot > span").forEach((sp) => sp.classList.toggle("on", sp.textContent === s.icon));
+    void next.offsetWidth;
+    old.classList.add("slide"); next.classList.add("slide");
+    old.style.transform = "translateX(calc(-100% - 8px))"; next.style.transform = "";
+    await wait(520);
+    old.remove(); next.classList.remove("slide");
+  };
+  // Starting over fades both sidebars out and back in
+  const crossfade = async (change) => {
+    sides.classList.add("faded"); await wait(450);
+    change();
+    sides.classList.remove("faded"); await wait(450);
+  };
+  const lit = (k) => document.querySelectorAll("#sb-steps li").forEach((li) => li.classList.toggle("on", li.dataset.k === k));
+  // Flies a copy of `from` onto `to`, which waits hidden in Zen's sidebar
+  const fly = async (from, to) => {
+    const box = sides.getBoundingClientRect(), a = from.getBoundingClientRect();
+    to.classList.add("hide");
+    const b = to.getBoundingClientRect();
+    const g = el("div", "sb arc flyer"), copy = from.cloneNode(true);
+    copy.classList.remove("moved", "landed");
+    // An Essentials icon or a space needs its row around it to keep its shape
+    const row = ["sb-ess", "sb-foot"].find((c) => from.parentElement.classList.contains(c));
+    if (row) { const cell = el("div", row); cell.appendChild(copy); g.appendChild(cell); } else g.appendChild(copy);
+    Object.assign(g.style, { left: `${a.left - box.left}px`, top: `${a.top - box.top}px`, width: `${a.width}px`, height: `${a.height}px` });
+    sides.appendChild(g); from.classList.add("moved");
+    await wait(30);
+    g.style.transform = `translate(${b.left - a.left}px, ${b.top - a.top}px) scale(${b.width / a.width}, ${b.height / a.height})`;
+    await wait(660);
+    g.remove(); to.classList.remove("hide"); to.classList.add("landed");
+  };
+  const zenPart = (k) => zenBar.querySelector(`.sb-pane [data-part="${k}"]`);
+  // The spaces themselves fly over first, then the tabs of one space at a time
+  const moveSpaces = async () => {
+    await crossfade(() => { build(arcBar, spaces[0], "Arc", true); build(zenBar, spaces[0], "Zen", false, false); lit(""); });
+    // Zen has no space to show until the spaces come over
+    const title = zenBar.querySelector(".sb-space"); title.classList.add("hide");
+    await wait(600); lit("spaces");
+    const slots = [...zenBar.querySelectorAll(".sb-foot > span")];
+    for (const [i, sp] of [...arcBar.querySelectorAll(".sb-foot > span")].entries()) {
+      const t = el("span", sp.className, sp.textContent); slots[i].replaceWith(t); await fly(sp, t); await wait(60);
+    }
+    arcBar.querySelectorAll(".sb-foot > span").forEach((sp) => sp.classList.remove("moved"));
+    title.classList.remove("hide"); title.classList.add("landed");
+    await wait(400);
+  };
+  const moveTabs = async (s) => {
+    lit("ess");
+    const slots = [...zenBar.querySelectorAll(".sb-pane .sb-ess > span")];
+    for (const [i, e] of [...arcBar.querySelectorAll(".sb-pane .sb-ess > span")].entries()) {
+      const t = essIcon(s.ess[i]); slots[i].replaceWith(t); await fly(e, t); await wait(60);
+    }
+    await wait(300); lit("fold");
+    for (const f of arcBar.querySelectorAll('[data-part="pin"] > .sb-folder')) { const t = f.cloneNode(true); zenPart("pin").appendChild(t); await fly(f, t); await wait(150); }
+    await wait(250); lit("pin");
+    for (const p of arcBar.querySelectorAll('[data-part="pin"] > .sb-tab')) { const t = p.cloneNode(true); zenPart("pin").appendChild(t); await fly(p, t); await wait(100); }
+    await wait(250); lit("today");
+    for (const p of arcBar.querySelectorAll('[data-part="today"] > .sb-tab')) { const t = p.cloneNode(true); zenPart("today").appendChild(t); await fly(p, t); await wait(100); }
+    await wait(400); lit(""); await wait(1800);
+  };
+  if (!calm) whenSeen(sides, async () => {
+    for (;;) {
+      await moveSpaces();
+      for (const [i, s] of spaces.entries()) {
+        if (i > 0) { await Promise.all([slide(arcBar, s, true), slide(zenBar, s, false)]); await wait(500); }
+        await moveTabs(s);
+      }
+      await wait(800);
+    }
+  });
+
+  // Sections slide in from just below; they stay visible all along
+  const reveals = [...document.querySelectorAll(".reveal")];
+  if (!calm && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => entries.forEach((en) => {
+      if (en.isIntersecting) { en.target.classList.remove("below"); io.unobserve(en.target); }
+    }), { rootMargin: "0px 0px -10% 0px" });
+    reveals.forEach((el) => {
+      if (el.getBoundingClientRect().top > innerHeight) { el.classList.add("below"); io.observe(el); }
+    });
+  }
+
+  // Downloads: the deploy puts the latest release's archives into the links (scripts/site_links.py);
+  // the hero button takes the visitor's own system, and the Intel link sits beside it on a Mac
+  const ua = navigator.userAgent;
+  const os = /Windows/.test(ua) ? "windows-x64" : /Mac/.test(ua) ? "macos-arm64" : "";
+  const names = { "macos-arm64": "Download for Mac", "macos-x64": "Download for Intel Mac", "windows-x64": "Download for Windows" };
+  const primary = document.getElementById("primary"), alt = document.getElementById("alt");
+  const archive = (platform) => document.querySelector(`.file[data-asset="${platform}"]`);
+  if (os) {
+    document.getElementById("primary-label").textContent = names[os];
+    primary.href = archive(os).href;
+    archive(os).classList.add("here");
+    if (os === "macos-arm64") alt.innerHTML = `<a href="${archive("macos-x64").href}" data-pick="macos-x64">Intel Mac</a><a href="#download">Windows</a>`;
+    else alt.innerHTML = '<a href="#download">macOS</a>';
+  }
+
+})();
+</script>
+</body>
+</html>
