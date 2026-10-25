@@ -96,6 +96,39 @@ Control) become Zen Space Routing routes to the workspace with the same name.
 one regex that requires all of them. Rules that open links in the most recent
 space need no route, since that is Zen's default.
 
+## Bug reports
+
+`diagnostics.py` builds the report for **Report it on GitHub…**. Every run's log
+starts with the app, OS, Python, Qt, Arc and Zen versions (Arc's from
+`Arc.app/Contents/Info.plist` on macOS and from the
+`TheBrowserCompany.Arc_<version>` folder next to its data on Windows; Zen's from
+`compatibility.ini`), the Arc and Zen folders and the items on and off, and
+every step ends with how long it took. A failure adds the traceback, also when a
+step catches the error itself and logs a `❌` line (the traceback comes on lines
+of its own, so the window's note under the step stays short), and a headless Zen
+that fails leaves the last 40 lines of its output. A failed rollback logs its
+traceback too. The report is a zip of:
+
+- `report.md`: versions, the run's options (names only, the number of spaces),
+  each step and how it ended, the error and the traceback;
+- `log.txt`: the log;
+- `files.txt`: the Arc and Zen files involved with their sizes and whether they
+  can be read (a running Arc for Windows locks some), and the shape of
+  `StorableSidebar.json`: item kinds and counts, never names or addresses.
+
+Every text goes through `Sanitizer.clean()`: the home folder becomes `~`, and
+`APPDATA`, `LOCALAPPDATA`, `TEMP`, `HOMESHARE` and OneDrive folders kept
+elsewhere become `%NAME%`. Paths match with either slash, doubled backslashes,
+`\\?\` and URL-encoded separators, in any case, and the 8.3 short form of the
+home folder. The organisation after `OneDrive - ` is dropped. The user, computer
+and domain names, the macOS full name, e-mail addresses and Windows SIDs become
+placeholders, space and profile names become `<space N>` and `<profile N>`
+(Chromium's `Default` and `Profile N` stay), and web addresses keep only their
+site. A report that still holds the user, the computer or a replaced path is not
+written. The issue link fills in the fields of `.github/ISSUE_TEMPLATE/migration.yml`
+(Problem with a migration; `general.yml`, Something else, is for everything else);
+GitHub can't attach a file through a link, so the user drags the report in.
+
 ## Zen settings
 
 - **Arc Look mod** (`src/arc2zen/mods/arc-look`): container line on the left of

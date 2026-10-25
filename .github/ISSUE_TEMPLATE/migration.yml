@@ -1,0 +1,59 @@
+name: Problem with a migration
+description: A migration stopped with an error, or finished but Zen isn't as it should be
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        After a migration that stopped, **Report it on GitHub…** on its screen fills in most of this.
+
+        > [!IMPORTANT]
+        > **Attach the report.** The app saved `arc-to-zen-report-….zip` to your Downloads folder. Drag it into
+        > **Diagnostic report** at the bottom: without it we usually can't tell what went wrong.
+  - type: input
+    id: version
+    attributes:
+      label: Arc to Zen version
+      placeholder: 0.3.0 (app, arm64)
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: System
+      placeholder: macOS 15.6 or Windows 11 (build 26100)
+    validations:
+      required: true
+  - type: input
+    id: browsers
+    attributes:
+      label: Arc and Zen versions
+      placeholder: Arc 1.129.0 · Zen 1.17.3b
+  - type: input
+    id: step
+    attributes:
+      label: Step that failed
+      description: Leave it empty if the migration finished.
+  - type: textarea
+    id: error
+    attributes:
+      label: Error
+      render: text
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: >-
+        If it finished: what is wrong in Zen and how it looked in Arc. Otherwise anything the report doesn't say,
+        such as what you expected.
+  - type: textarea
+    id: report
+    attributes:
+      label: Diagnostic report
+      description: >-
+        Drag arc-to-zen-report-….zip from Downloads here; GitHub uploads it and puts its link in this field. It has
+        no cookies, passwords, site data, or addresses and titles of your tabs, and your user name in paths is
+        replaced; open it first if you want to check. No report because the app didn't get that far? Write that here.
+      placeholder: Drop arc-to-zen-report-….zip here
+    validations:
+      required: true

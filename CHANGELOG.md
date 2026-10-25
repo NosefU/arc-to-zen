@@ -35,6 +35,8 @@ and Arc for Windows is supported.
   to before the first run.
 - Progress, a result screen with notes, and the log one click away.
 - A faded bottom edge shows that a list or the result goes on below.
+- After a failure, Report it on GitHub saves a diagnostic report without personal details and opens an
+  issue with the versions and the error filled in.
 - Close Zen if needed closes only the Zen running the target profile.
 - Without Zen the app says how to get it.
 - The window shows the app's version and links to its GitHub page.

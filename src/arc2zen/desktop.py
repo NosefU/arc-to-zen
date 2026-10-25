@@ -22,13 +22,16 @@ if sys.stderr is None:
 
 try:
     import psutil
-    from PySide6.QtCore import QByteArray, QEvent, QPoint, QRect, QRectF, QSize, Qt, QThread, QTimer, QUrl, Signal
+    from PySide6.QtCore import (QByteArray, QEvent, QPoint, QRect, QRectF, QSize, QStandardPaths, Qt, QThread, QTimer,
+                                QUrl, Signal)
     from PySide6.QtGui import (QColor, QDesktopServices, QFont, QFontMetrics, QIcon, QLinearGradient, QPainter, QPalette,
                                QPixmap)
     from PySide6.QtSvg import QSvgRenderer
     from PySide6.QtWidgets import (
         QApplication,
         QComboBox,
+        QDialog,
+        QDialogButtonBox,
         QFileDialog,
         QFrame,
         QGraphicsOpacityEffect,
@@ -42,6 +45,7 @@ try:
         QPushButton,
         QScrollArea,
         QStackedWidget,
+        QTabWidget,
         QTextEdit,
         QVBoxLayout,
         QWidget,
@@ -52,6 +56,7 @@ except ImportError as exc:
     raise
 
 from . import __version__
+from .diagnostics import FailureReport
 from .link_routing import ARC_HAS_LINK_ROUTING
 from .migration import ARC_LOOK_KEYS, MigrationOptions, look_only, migration_steps, run_migration, use_utf8_output
 from .profile_paths import (
@@ -118,6 +123,7 @@ QFrame#Aside {{ background: transparent; border: 0; border-right: 1px solid {LIN
 QFrame#Divider {{ background: {LINE}; border: 0; max-height: 1px; min-height: 1px; }}
 QFrame#Notes {{ background: {NOTE_SOFT}; border: 1px solid {NOTE_LINE}; border-radius: 12px; }}
 QFrame#Confirm {{ background: {DANGER_SOFT}; border: 1px solid {DANGER_LINE}; border-radius: 12px; }}
+QFrame#Saved {{ background: {OK_SOFT}; border: 1px solid {OK_LINE}; border-radius: 12px; }}
 QFrame#Stat {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 12px; }}
 QFrame#Endpoint {{ background: {CARD}; border: 1px solid {LINE}; border-radius: 10px; }}
 QFrame#Endpoint:hover, QFrame#Endpoint:focus {{ border-color: {ACCENT}; }}
@@ -911,6 +917,7 @@ class StepRow(QWidget):
             "failed": (f"background: {DANGER}; border-radius: 10px; color: #ffffff; font-weight: 700;", "!", TEXT, 600),
             "noted": (NOTE_ICON, "i", TEXT, 500),
         }
+        self.state = state
         box, mark, color, weight = styles[state]
         self.icon.setStyleSheet(box if state == "noted" else box + " font-size: 11px;")
         self.icon.setText(mark)
@@ -936,9 +943,11 @@ class MigrationWorker(QThread):
         try:
             self._run()
         except Exception as exc:
+            self.error_traceback = traceback.format_exc()
             self.done.emit(False, str(exc))
 
     def _run(self):
+        self.error_traceback = ""
         run_migration(self.config, emit_line=self.line.emit, on_step=self.step.emit,
                       on_snapshot=lambda path: self.snapshot.emit(str(path)), snapshot_dir=self.snapshot_dir)
         self.done.emit(True, "Migration finished successfully.")
@@ -1042,6 +1051,15 @@ PRESETS = [
 ]
 ZEN_DOWNLOAD_URL = "https://zen-browser.app/download/"
 GITHUB_URL = "https://github.com/NosefU/arc-to-zen"
+FILE_MANAGER = {"darwin": "Finder", "win32": "Explorer"}.get(sys.platform, "folder")
+REPORT_CONTENTS = [
+    f"App, {'macOS' if sys.platform == 'darwin' else 'Windows' if sys.platform == 'win32' else 'system'}, "
+    "Arc and Zen versions",
+    "What you picked: presets, items, how many spaces",
+    "Each step, how it ended, and the full error",
+    "The full log",
+    "Which Arc and Zen files exist and their sizes, without their contents",
+]
 # The rows "just the look" shows; the others don't apply to it
 LOOK_ROWS = ("Look", "Zen setup", "Safety")
 ZEN_SETUP = [("arc_look_mod", "Arc Look mod"), ("sidebar_mode", "sidebar"), ("toolbar_layout", "toolbars"),
@@ -1151,6 +1169,65 @@ class MainWindow(QMainWindow):
         button.setCursor(Qt.PointingHandCursor)
         button.clicked.connect(slot)
         return button
+
+    def _build_report(self, head: QVBoxLayout) -> None:
+        """After a failure: a link, then what the report holds, then where it went."""
+        self.report_link = label("Looks like a bug? " + web_link("Report it on GitHub…", "#report"), "small")
+        self.report_link.setTextFormat(Qt.RichText)
+        self.report_link.linkActivated.connect(lambda _: self.ask_report())
+        head.addWidget(self.report_link, 0, Qt.AlignHCenter)
+
+        self.report_panel = frame("Card")
+        panel = QVBoxLayout(self.report_panel)
+        panel.setContentsMargins(16, 14, 16, 14)
+        panel.setSpacing(8)
+        title = label("Report this on GitHub")
+        title.setStyleSheet("font-weight: 600;")
+        panel.addWidget(title)
+        panel.addWidget(label("The app saves a report to Downloads and opens a GitHub issue with the details filled "
+                              "in. Drag the report into the issue before you submit it.", "muted", wrap=True))
+        for item in REPORT_CONTENTS:
+            row = label(f'<span style="color: {OK}; font-weight: 700;">✓</span>&nbsp;&nbsp;{item}', wrap=True)
+            row.setTextFormat(Qt.RichText)
+            panel.addWidget(row)
+        panel.addWidget(label("🔒  Never in the report: cookies, passwords, site data, addresses and titles of your "
+                              "tabs. Your user name in paths becomes “~”. You can open the report before sending it.",
+                              "small", wrap=True))
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        cancel = QPushButton("Cancel")
+        cancel.clicked.connect(self.cancel_report)
+        buttons.addWidget(cancel)
+        send = QPushButton("Save report and open GitHub")
+        send.setObjectName("Primary")
+        send.clicked.connect(self.send_report)
+        buttons.addWidget(send)
+        panel.addLayout(buttons)
+        head.addLayout(self._centered(self.report_panel, 500))
+
+        self.report_saved = frame("Saved")
+        saved = QVBoxLayout(self.report_saved)
+        saved.setContentsMargins(16, 14, 16, 14)
+        saved.setSpacing(6)
+        title = label("Report saved, GitHub is open in your browser")
+        title.setStyleSheet("font-weight: 600;")
+        saved.addWidget(title)
+        self.report_saved_text = label("", "muted", wrap=True)
+        self.report_saved_text.setTextFormat(Qt.RichText)
+        saved.addWidget(self.report_saved_text)
+        links = QHBoxLayout()
+        links.setSpacing(0)
+        links.addWidget(self._link(f"Show in {FILE_MANAGER}", self.reveal_report))
+        links.addWidget(self._link("Show what's in the report", self.show_report_contents))
+        links.addWidget(self._link("Open the issue again ↗", self.open_report_issue))
+        links.addStretch(1)
+        saved.addLayout(links)
+        head.addLayout(self._centered(self.report_saved, 500))
+        self.failure: Optional[FailureReport] = None
+        self.report_path: Optional[Path] = None
+        self.report_url = ""
+        for widget in (self.report_link, self.report_panel, self.report_saved):
+            widget.setVisible(False)
 
     def _build_ui(self) -> None:
         root = QWidget()
@@ -1449,6 +1526,7 @@ class MainWindow(QMainWindow):
         self.star_line.setStyleSheet(f"border-top: 1px solid {LINE}; padding-top: 14px; margin-top: 10px;")
         self.star_line.setToolTip(GITHUB_URL)
         head.addWidget(self.star_line, 0, Qt.AlignHCenter)
+        self._build_report(head)
         self.rollback_confirm = frame("Confirm")
         confirm = QVBoxLayout(self.rollback_confirm)
         confirm.setContentsMargins(14, 12, 14, 12)
@@ -2252,6 +2330,10 @@ class MainWindow(QMainWindow):
         self.result_hint.setVisible(can_roll_back)
         self.rollback_link.setVisible(ok and can_roll_back)
         self.star_line.setVisible(ok)
+        self.report_link.setVisible(not ok)
+        self.report_panel.setVisible(False)
+        self.report_saved.setVisible(False)
+        self.failure = None if ok else self.failure_report(message)
         self.rollback_confirm.setVisible(False)
         self.rollback_confirm_title.setText(f"Roll Zen back to {self.before_runs()}?")
         self.rollback_confirm_text.setText(
@@ -2334,6 +2416,81 @@ class MainWindow(QMainWindow):
         except Exception:
             return str(config.zen_profile)
 
+    def failure_report(self, message: str) -> FailureReport:
+        spaces = [row.space for row in self.space_rows]
+        worker = self.worker
+        return FailureReport(
+            options=worker.config if worker else self.selected_config(),
+            steps=[(title, getattr(row, "state", "pending")) for title, row in self.step_rows.items()],
+            failed_step=self.current_step_title,
+            error=message,
+            traceback=getattr(worker, "error_traceback", ""),
+            log=self.log.toPlainText(),
+            space_names=[space.name for space in spaces],
+            profile_names=[name for space in spaces for name in (space.profile_name, space.container) if name],
+        )
+
+    def ask_report(self) -> None:
+        self.report_link.setVisible(False)
+        self.report_panel.setVisible(True)
+        QTimer.singleShot(0, self.place_result)
+        QTimer.singleShot(0, lambda: self.run_scroll.ensureWidgetVisible(self.report_panel, 0, 24))
+
+    def cancel_report(self) -> None:
+        self.report_panel.setVisible(False)
+        self.report_link.setVisible(True)
+        QTimer.singleShot(0, self.place_result)
+
+    def send_report(self) -> None:
+        folder = Path(QStandardPaths.writableLocation(QStandardPaths.DownloadLocation) or Path.home())
+        try:
+            self.report_path = self.failure.save(folder)
+        except Exception as exc:
+            QMessageBox.warning(self, "Can't save the report", str(exc))
+            return
+        self.report_url = self.failure.issue_url()
+        self.report_saved_text.setText(f"Drag <b style=\"color: {TEXT};\">{self.report_path.name}</b> from "
+                                       f"{folder.name} into the issue, then submit it.")
+        self.report_panel.setVisible(False)
+        self.report_saved.setVisible(True)
+        QTimer.singleShot(0, self.place_result)
+        self.reveal_report()
+        self.open_report_issue()
+
+    def open_report_issue(self) -> None:
+        if self.report_url:
+            QDesktopServices.openUrl(QUrl(self.report_url))
+
+    def reveal_report(self) -> None:
+        path = self.report_path
+        if not path:
+            return
+        if sys.platform == "darwin":
+            subprocess.run(["open", "-R", str(path)], check=False)
+        elif sys.platform == "win32":
+            subprocess.run(["explorer", f"/select,{path}"], check=False)
+        else:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(path.parent)))
+
+    def show_report_contents(self) -> None:
+        if not self.failure:
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.report_path.name if self.report_path else "Report")
+        dialog.resize(760, 560)
+        layout = QVBoxLayout(dialog)
+        tabs = QTabWidget()
+        for name, text in self.failure.files().items():
+            view = QTextEdit()
+            view.setReadOnly(True)
+            view.setPlainText(text)
+            tabs.addTab(view, name)
+        layout.addWidget(tabs)
+        close = QDialogButtonBox(QDialogButtonBox.Close)
+        close.rejected.connect(dialog.reject)
+        layout.addWidget(close)
+        dialog.exec()
+
     def run_count(self) -> int:
         """Runs from this window the current backup covers."""
         if not self.snapshot_dir:
@@ -2408,7 +2565,8 @@ class MainWindow(QMainWindow):
         self.result_text.setText(text)
         for widget in (self.result_stats, self.result_notes, self.result_rollback, self.result_action, self.result_exit,
                        self.steps_toggle, self.result_hint, self.rollback_link, self.rollback_confirm,
-                       self.star_line, self.steps_card, self.log):
+                       self.star_line, self.report_link, self.report_panel, self.report_saved,
+                       self.steps_card, self.log):
             widget.setVisible(False)
         self.refresh()
         QTimer.singleShot(0, self.place_result)

@@ -154,6 +154,15 @@ Closing the window deletes the backup.
   app a link came from, and rules sending links to Little Arc are skipped; the
   result says how many. Rules that open links in the most recent space need
   nothing, since Zen does that anyway.
+- **Reporting a problem**: after a failure, **Report it on GitHub…** says what
+  goes into a report, saves it to Downloads and opens a GitHub issue with the
+  versions and the error filled in; drag the report into the issue. The report
+  has no cookies, passwords, site data, or addresses and titles of tabs; your
+  user and computer names and your space and profile names are replaced. Show
+  what's in the report opens it before you send it. For a migration that
+  finished but left Zen wrong, or anything else, open a [new
+  issue](https://github.com/NosefU/arc-to-zen/issues/new/choose) and pick
+  **Problem with a migration** or **Something else**.
 - **Languages**: Zen has only the English (US) spellcheck dictionary built in;
   for other languages the result links to
   [Firefox dictionaries](https://addons.mozilla.org/firefox/language-tools/),

@@ -1,0 +1,33 @@
+name: Something else
+description: A problem with the app's window, an idea, or a question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a migration that stopped or left Zen wrong, use **Problem with a migration** instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What is it about
+      description: What you did and saw, what you'd like, or what you'd like to know.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Arc to Zen version
+      description: The window's header shows it after “press Migrate”.
+      placeholder: 0.3.0
+  - type: input
+    id: system
+    attributes:
+      label: System
+      description: For something in the window, add the display scaling (100%, 125%…).
+      placeholder: macOS 15.6 or Windows 11
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: >-
+        Drag screenshots here. Check that they show no addresses, names or other details you'd rather keep to
+        yourself.
