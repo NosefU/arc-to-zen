@@ -81,6 +81,42 @@ def arc_space_name(space_id: str, space_value: Dict) -> str:
     return f'Space {space_id}'
 
 
+def normalize_arc_sidebar(data: Dict) -> Dict:
+    """Bring Arc for Windows' sidebar to the layout of Arc for macOS.
+
+    Arc for Windows keeps spaces only in the local sidebar (``spaceModels``
+    stays empty without sync) and lists a space's containers in
+    ``newContainerIDs``, with ``{"pinned": {}}`` objects in place of the
+    ``"pinned"`` and ``"unpinned"`` markers.
+    """
+    containers = data.get('sidebar', {}).get('containers', [])
+    local_spaces = containers[1].get('spaces', []) if len(containers) > 1 and isinstance(containers[1], dict) else []
+    sync_data = data.setdefault('firebaseSyncState', {}).setdefault('syncData', {})
+    space_models = sync_data.get('spaceModels') or []
+    known = {value for value in space_models if isinstance(value, str)}
+
+    for i in range(0, len(local_spaces) - 1, 2):
+        space_id, space = local_spaces[i], local_spaces[i + 1]
+        if not isinstance(space_id, str) or not isinstance(space, dict):
+            continue
+        if 'containerIDs' not in space and 'newContainerIDs' in space:
+            space['containerIDs'] = [
+                next(iter(value)) if isinstance(value, dict) and len(value) == 1 else value
+                for value in space['newContainerIDs']
+            ]
+        if space_id not in known:
+            space_models += [space_id, {'value': space}]
+
+    sync_data['spaceModels'] = space_models
+    return data
+
+
+def load_arc_sidebar(arc_profile: str | Path | None = None) -> Dict:
+    """Read StorableSidebar.json in the layout of Arc for macOS."""
+    with open(resolve_arc_profile(arc_profile) / "StorableSidebar.json", encoding="utf-8") as f:
+        return normalize_arc_sidebar(json.load(f))
+
+
 def arc_space_legacy_names(space_id: str, space_name: str) -> List[str]:
     """Names older versions gave this space in Zen, so re-runs can find that workspace."""
     if space_id == ARC_DEFAULT_PERSONAL_SPACE_ID and space_name == "Personal":
@@ -106,8 +142,7 @@ class ArcPinnedTabExtractor:
             return []
 
         try:
-            with open(self.arc_sidebar_file, 'r', encoding="utf-8") as f:
-                sidebar_data = json.load(f)
+            sidebar_data = load_arc_sidebar(self.arc_profile)
 
             logger.info("✅ Loaded Arc StorableSidebar.json")
             return self._parse_local_sidebar_data(

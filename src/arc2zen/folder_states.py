@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Tuple
 
 from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
-from .extract import arc_space_name
+from .extract import arc_space_name, load_arc_sidebar
 from .profile_paths import arc_json_path
 
 
@@ -57,7 +57,7 @@ def section_children(container_ids: list[str], marker: str, items_lookup: Dict[s
 
 
 def arc_folder_states(arc_profile: str | Path | None = None) -> Dict[FolderKey, bool]:
-    sidebar = load_arc_json("StorableSidebar.json", arc_profile)
+    sidebar = load_arc_sidebar(arc_profile)
     windows = load_arc_json("StorableWindows.json", arc_profile)
     expanded_ids = expanded_arc_item_ids(windows)
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Sync Arc workspace themes into Zen workspaces."""
 
-import json
 import argparse
 import logging
 import shutil
@@ -10,8 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
 from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
-from .extract import arc_space_name
-from .profile_paths import arc_json_path
+from .extract import arc_space_name, load_arc_sidebar
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -19,12 +17,6 @@ logger = logging.getLogger(__name__)
 
 ZEN_COLOR_TYPE = "explicit-lightness"
 DEFAULT_OPACITY = 0.5
-
-
-def load_arc_sidebar(arc_profile: str | Path | None = None) -> Dict[str, Any]:
-    path = arc_json_path("StorableSidebar.json", arc_profile)
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
 
 
 def alternating_pairs(values: list[Any]) -> Iterable[tuple[str, Any]]:

@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
-from .extract import arc_space_name
+from .extract import arc_space_name, load_arc_sidebar
 from .profile_paths import arc_json_path
 from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
 
@@ -79,8 +79,7 @@ def combine_conditions(conditions: List[Tuple[str, str]]) -> Optional[Tuple[str,
 
 
 def arc_space_names_by_id(arc_profile: str | Path | None) -> Dict[str, str]:
-    with open(arc_json_path("StorableSidebar.json", arc_profile), encoding="utf-8") as f:
-        models = json.load(f).get("firebaseSyncState", {}).get("syncData", {}).get("spaceModels", [])
+    models = load_arc_sidebar(arc_profile)["firebaseSyncState"]["syncData"]["spaceModels"]
     return {
         models[i]: arc_space_name(models[i], models[i + 1].get("value", {}))
         for i in range(0, len(models) - 1)

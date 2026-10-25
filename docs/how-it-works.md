@@ -10,7 +10,9 @@ The migrator only reads Arc's files; nothing in Arc is changed.
 - Spaces, tabs, folders and Essentials come from `StorableSidebar.json` in the
   Arc data folder; Arc's internal pages are mapped to Zen pages (`arc://downloads`
   → `about:downloads`, `arc://settings` → `about:preferences`,
-  `arc://extensions` → `about:addons`, passwords → `about:logins`).
+  `arc://extensions` → `about:addons`, passwords → `about:logins`). Arc for
+  Windows, which keeps no synced copy of the spaces, has them read from the
+  sidebar itself. The tabs of a split view come in its place, side by side.
 - Cookies and passwords are read from Arc's SQLite databases with
   `mode=ro&immutable=1`, without locks. Changes Arc has not flushed to disk yet
   (Chromium writes cookies about every 30 seconds) are not seen.
