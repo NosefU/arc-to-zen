@@ -3,13 +3,17 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - "**"
   pull_request:
 
 jobs:
-  python-check:
-    name: Python syntax check
-    runs-on: ubuntu-22.04
+  check:
+    name: Check on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-2022]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -25,5 +29,7 @@ jobs:
           pip install -e ".[desktop]"
 
       - name: Compile Python sources
-        run: |
-          python -m compileall -q cli.py desktop.py src scripts
+        run: python -m compileall -q cli.py desktop.py src scripts
+
+      - name: Import every module and open the window
+        run: python scripts/check_desktop.py
