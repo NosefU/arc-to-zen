@@ -938,7 +938,7 @@ CATEGORIES = [
     ("Languages", [
         Choice("website_languages", "Website languages",
                "Languages sites are asked for, languages never to translate, spellcheck dictionary"),
-        Choice("interface_language", "Interface language", "Menus and date formats follow macOS, as in Arc"),
+        Choice("interface_language", "Interface language", "Menus and date formats follow the system, as in Arc"),
     ], "", ()),
     ("Zen setup", [
         Choice("arc_look_mod", "Arc Look mod", "Compact top bar, Arc-like address bar that always floats, Peek"),

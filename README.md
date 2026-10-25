@@ -138,10 +138,12 @@ Closing the window deletes the backup.
   is kept, and values over Zen's 5 MB per site are skipped. IndexedDB is not
   copied; sites download that data again themselves. Zen briefly runs in the
   background here too.
-- **Boosts**: all of your Arc boosts are copied, whatever spaces you pick. Zen
-  boosts have no JavaScript, so a boost's script is left out; the result names
-  those boosts. A boost on in Arc is turned on in Zen unless Zen already has one
-  on for that site. Running again updates the boosts instead of adding copies.
+- **Boosts**: all of your Arc boosts are copied, whatever spaces you pick. They
+  come with your Arc account, so a computer where you never made one may still
+  have some. Zen boosts have no JavaScript, so a boost's script is left out; the
+  result names those boosts. A boost on in Arc is turned on in Zen unless Zen
+  already has one on for that site. Running again updates the boosts instead of
+  adding copies.
 - **Air Traffic Control**: rules with conditions Zen cannot express, such as the
   app a link came from, and rules sending links to Little Arc are skipped; the
   result says how many. Rules that open links in the most recent space need

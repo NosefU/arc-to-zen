@@ -75,11 +75,12 @@ sites re-download that data themselves.
 ## Boosts
 
 Arc keeps boosts in its account data; the migrator reads the local Firestore
-cache in `~/Library/Application Support/firestore/Arc` (next to the Arc data
-folder) and adds each boost to `zen-boosts.jsonlz4` for the same host, with its
-CSS, name, and zap selectors. A boost active in Arc becomes the active Zen boost
-for its site unless Zen already has one active there. Re-running updates the
-same boosts instead of duplicating them.
+cache in `firestore/Arc` next to the Arc data folder
+(`~/Library/Application Support/firestore/Arc` on macOS) and adds each boost to
+`zen-boosts.jsonlz4` for the same host, with its CSS, name, and zap selectors.
+A boost active in Arc becomes the active Zen boost for its site unless Zen
+already has one active there. Re-running updates the same boosts instead of
+duplicating them.
 
 ## Air Traffic Control
 
@@ -122,8 +123,8 @@ Zen keeps one set of language settings, so they come from Arc's first profile
 - `spellchecker.dictionary` from Arc's spellcheck dictionaries that Zen has
   (it ships only English (US); others come as dictionary add-ons);
 - `intl.locale.requested = ""` and `intl.regional_prefs.use_os_locales = true`,
-  so Zen follows macOS as Arc does, or the language picked for Arc alone in
-  System Settings (`AppleLanguages` in Arc's preferences).
+  so Zen follows the system as Arc does, or on macOS the language picked for
+  Arc alone in System Settings (`AppleLanguages` in Arc's preferences).
 
 ## Finding profiles
 

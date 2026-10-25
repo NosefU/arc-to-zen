@@ -135,7 +135,7 @@ def migrate_languages(
         if found["intl.locale.requested"]:
             logger.info(f"   Arc has its own interface language: {found['intl.locale.requested']}")
         else:
-            logger.info("   Zen will use the macOS language and formats, as Arc does")
+            logger.info("   Zen will use the system language and formats, as Arc does")
 
     for name, value in prefs.items():
         logger.info(f"   {name} = {json.dumps(value, ensure_ascii=False)}")
