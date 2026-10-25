@@ -352,6 +352,10 @@ class ArcPinnedTabExtractor:
                                                 child_folder_path = current_folder_path + [folder_title] if is_pinned else current_folder_path
                                                 process_items_recursive(folder_children, child_folder_path, is_pinned)
 
+                                    elif 'splitView' in data_section:
+                                        # Zen gets the tabs of a split view side by side, in its place
+                                        process_items_recursive(item_data.get('childrenIds', []), current_folder_path, is_pinned)
+
                             # Start recursive processing with top-level display order
                             process_items_recursive(display_order, is_pinned=True)
                             process_items_recursive(unpinned_order, is_pinned=False)
