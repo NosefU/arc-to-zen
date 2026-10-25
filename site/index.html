@@ -10,6 +10,8 @@
 <meta property="og:description" content="Move your Arc spaces, tabs, sign-ins and settings into Zen, or just make Zen look like Arc.">
 <meta property="og:image" content="assets/hero.jpg">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<!-- Visits and download clicks, counted by GoatCounter without cookies -->
+<script data-goatcounter="https://nosefu.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -361,7 +363,7 @@ footer a { color: var(--muted); }
   <h1><span class="word" style="--i:0">Arc</span> <span class="word to" style="--i:1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="to"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></svg></span> <span class="word" style="--i:2">Zen,</span><br><span class="word" style="--i:3">everything</span> <span class="word" style="--i:4">along.</span></h1>
   <p class="lede">Your spaces, pinned tabs and folders, sign-ins, boosts and settings move into Zen in one go. Or keep Zen as it is and give it Arc's look.</p>
   <div class="cta">
-    <a class="btn" id="primary" href="https://github.com/NosefU/arc-to-zen/releases/latest"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 011 1v9.6l3.3-3.3a1 1 0 111.4 1.4l-5 5a1 1 0 01-1.4 0l-5-5a1 1 0 111.4-1.4L11 13.6V4a1 1 0 011-1zM5 19h14a1 1 0 010 2H5a1 1 0 010-2z"/></svg><span id="primary-label">Download</span> <small id="primary-version"></small></a>
+    <a class="btn" id="primary" data-count="hero" href="https://github.com/NosefU/arc-to-zen/releases/latest"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 011 1v9.6l3.3-3.3a1 1 0 111.4 1.4l-5 5a1 1 0 01-1.4 0l-5-5a1 1 0 111.4-1.4L11 13.6V4a1 1 0 011-1zM5 19h14a1 1 0 010 2H5a1 1 0 010-2z"/></svg><span id="primary-label">Download</span> <small id="primary-version"></small></a>
     <div class="alt" id="alt"><a href="#download">macOS and Windows downloads</a></div>
   </div>
   <div class="meta"><span>Free and open source</span><span>macOS and Windows</span><span>Backs up Zen first</span></div>
@@ -496,9 +498,9 @@ footer a { color: var(--muted); }
       <a class="btn" href="https://github.com/NosefU/arc-to-zen/releases/latest">All releases</a>
     </div>
     <div class="files">
-      <a class="file" data-asset="macos-arm64" href="https://github.com/NosefU/arc-to-zen/releases/latest"><b>macOS, Apple Silicon</b><span>arc-to-zen-…-macos-arm64.zip</span></a>
-      <a class="file" data-asset="macos-x64" href="https://github.com/NosefU/arc-to-zen/releases/latest"><b>macOS, Intel</b><span>arc-to-zen-…-macos-x64.zip</span></a>
-      <a class="file" data-asset="windows-x64" href="https://github.com/NosefU/arc-to-zen/releases/latest"><b>Windows</b><span>arc-to-zen-…-windows-x64.zip</span></a>
+      <a class="file" data-asset="macos-arm64" data-count="list" href="https://github.com/NosefU/arc-to-zen/releases/latest"><b>macOS, Apple Silicon</b><span>arc-to-zen-…-macos-arm64.zip</span></a>
+      <a class="file" data-asset="macos-x64" data-count="list" href="https://github.com/NosefU/arc-to-zen/releases/latest"><b>macOS, Intel</b><span>arc-to-zen-…-macos-x64.zip</span></a>
+      <a class="file" data-asset="windows-x64" data-count="list" href="https://github.com/NosefU/arc-to-zen/releases/latest"><b>Windows</b><span>arc-to-zen-…-windows-x64.zip</span></a>
     </div>
     <div class="notes">
       <p><b>First start on macOS.</b> The app isn't signed yet, so macOS blocks it once. Open System Settings, then Privacy &amp; Security, and click Open Anyway next to Arc to Zen.</p>
@@ -509,7 +511,7 @@ footer a { color: var(--muted); }
 </main>
 
 <footer>
-  <span>© 2025 Artur Bodera · © 2026 Valko Dmitry · MIT licensed · Based on <a href="https://github.com/Thinkscape/arc-to-zen">Thinkscape/arc-to-zen</a> · Not affiliated with The Browser Company or Zen</span>
+  <span>© 2025 Artur Bodera · © 2026 Valko Dmitry · MIT licensed · Visits counted with <a href="https://www.goatcounter.com">GoatCounter</a>, no cookies · Based on <a href="https://github.com/Thinkscape/arc-to-zen">Thinkscape/arc-to-zen</a> · Not affiliated with The Browser Company or Zen</span>
   <span><a href="https://github.com/NosefU/arc-to-zen">Source</a> · <a href="https://github.com/NosefU/arc-to-zen/issues/new/choose">Report a problem</a></span>
 </footer>
 </div>
@@ -739,10 +741,18 @@ footer a { color: var(--muted); }
     document.getElementById("primary-label").textContent = names[os];
     primary.href = archive(os).href;
     archive(os).classList.add("here");
-    if (os === "macos-arm64") alt.innerHTML = `<a href="${archive("macos-x64").href}" data-pick="macos-x64">Intel Mac</a><a href="#download">Windows</a>`;
+    if (os === "macos-arm64") alt.innerHTML = `<a href="${archive("macos-x64").href}" data-pick="macos-x64" data-count="hero">Intel Mac</a><a href="#download">Windows</a>`;
     else alt.innerHTML = '<a href="#download">macOS</a>';
   }
 
+  // A click on a download counts as an event named after the archive and where it was clicked,
+  // like download-macos-arm64-hero; the hero button counts as the visitor's own system
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest("[data-count]");
+    if (!link || !window.goatcounter?.count) return;
+    const asset = link.dataset.asset || link.dataset.pick || os || "unknown";
+    window.goatcounter.count({ path: `download-${asset}-${link.dataset.count}`, title: link.textContent.trim(), event: true });
+  });
 })();
 </script>
 </body>
