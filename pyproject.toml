@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arc2zen"
-version = "0.2.4"
+dynamic = ["version"]
 description = "Migrate all Arc workspaces data into Zen."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,6 +29,9 @@ arc2zen = "arc2zen.cli:main"
 
 [project.gui-scripts]
 arc2zen-desktop = "arc2zen.desktop:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "arc2zen.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]

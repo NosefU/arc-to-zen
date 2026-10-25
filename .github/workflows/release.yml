@@ -15,8 +15,40 @@ permissions:
   contents: write
 
 jobs:
+  notes:
+    name: Release notes
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Fails when the tag doesn't match the package version or CHANGELOG.md has no section for it
+      - name: Take the notes from CHANGELOG.md
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          previous=$(git tag --list "v*" --sort=-v:refname --merged HEAD | grep -vx "$RELEASE_TAG" | head -n 1 || true)
+          python scripts/release_notes.py "$RELEASE_TAG" --previous "$previous" --repo "${{ github.repository }}" > release-notes.md
+          cat release-notes.md
+
+      - name: Upload notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+
   build:
     name: Build ${{ matrix.platform_label }}
+    needs: notes
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -69,8 +101,14 @@ jobs:
       - name: Download built artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: arc-to-zen-*
           path: release-assets
           merge-multiple: true
+
+      - name: Download notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
 
       - name: Add checksums
         working-directory: release-assets
@@ -83,10 +121,13 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: |
+          # A new release is a draft: check it on the Releases page and publish it there
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" release-assets/* --clobber
+            gh release edit "$RELEASE_TAG" --notes-file release-notes.md
           else
             gh release create "$RELEASE_TAG" release-assets/* \
               --title "arc-to-zen $RELEASE_TAG" \
-              --generate-notes
+              --notes-file release-notes.md \
+              --draft
           fi

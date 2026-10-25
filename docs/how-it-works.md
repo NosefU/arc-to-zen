@@ -154,6 +154,23 @@ pip install -e ".[build]"
 python scripts/build_desktop.py --version dev
 ```
 
-Release builds are created by GitHub Actions when a `v*` tag is pushed.
 `python scripts/render_readme_screenshot.py` renders the app window into
 `docs/app-screenshot.png`.
+
+## Releasing
+
+1. Set `__version__` in `src/arc2zen/__init__.py`; `pyproject.toml` takes the
+   version from there.
+2. Add a `## v<version> — <date>` section to `CHANGELOG.md`.
+3. Push the tag `v<version>`.
+
+GitHub Actions then checks that the tag matches the version and takes the
+release notes from that section, adding a link to the diff from the previous
+tag (`scripts/release_notes.py`). It builds the app for macOS (Apple Silicon
+and Intel) and Windows and creates a draft release with the archives and
+`SHA256SUMS.txt`. Check the draft on the Releases page and publish it there.
+Running the workflow again for the same tag replaces the archives and the
+notes.
+
+On every push CI compiles the sources and, on macOS and Windows, imports every
+module and opens the app window off screen (`scripts/check_desktop.py`).

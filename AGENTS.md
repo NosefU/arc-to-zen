@@ -277,6 +277,8 @@ Zen:
 - Docs: README.md is for users of the app and the CLI: what it does, what to
   expect, how to use it. File names, settings keys, formats and other
   implementation details go to `docs/how-it-works.md`.
+- Changelog: a change users notice also goes to the coming release's section
+  in `CHANGELOG.md`; the release notes are taken from there.
 - Backups: whatever a feature changes in the Zen profile must come back on
   rollback. The run's snapshot copies the whole profile except `SKIPPED_NAMES`,
   `SKIPPED_PREFIXES` and site storage beyond localStorage (`snapshot.py`), so
