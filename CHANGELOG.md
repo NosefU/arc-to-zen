@@ -34,6 +34,7 @@ and Arc for Windows is supported.
 - The Zen profile is backed up before every run, and the window can roll back
   to before the first run.
 - Progress, a result screen with notes, and the log one click away.
+- A faded bottom edge shows that a list or the result goes on below.
 - Close Zen if needed closes only the Zen running the target profile.
 - Without Zen the app says how to get it.
 - The window shows the app's version and links to its GitHub page.

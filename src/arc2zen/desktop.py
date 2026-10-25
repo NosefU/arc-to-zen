@@ -22,7 +22,8 @@ if sys.stderr is None:
 try:
     import psutil
     from PySide6.QtCore import QByteArray, QEvent, QPoint, QRect, QRectF, QSize, Qt, QThread, QTimer, QUrl, Signal
-    from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics, QIcon, QPainter, QPalette, QPixmap
+    from PySide6.QtGui import (QColor, QDesktopServices, QFont, QFontMetrics, QIcon, QLinearGradient, QPainter, QPalette,
+                               QPixmap)
     from PySide6.QtSvg import QSvgRenderer
     from PySide6.QtWidgets import (
         QApplication,
@@ -534,6 +535,42 @@ def zen_space_names(profile: Path) -> set[str]:
     except Exception:
         return set()
     return {space.get("name") for space in spaces if space.get("name")}
+
+
+class ScrollFade(QWidget):
+    """Fades the bottom of a scroll area into the window while more is below it."""
+
+    HEIGHT = 56
+
+    def __init__(self, area: QScrollArea):
+        super().__init__(area)
+        self.area = area
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        bar = area.verticalScrollBar()
+        bar.valueChanged.connect(self.update_state)
+        bar.rangeChanged.connect(self.update_state)
+        area.installEventFilter(self)
+
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.Resize:
+            self.update_state()
+        return False
+
+    def update_state(self, *_):
+        # Over the viewport only, so a scroll bar beside it stays clear
+        viewport = self.area.viewport().geometry()
+        self.setGeometry(viewport.left(), viewport.bottom() + 1 - self.HEIGHT, viewport.width(), self.HEIGHT)
+        bar = self.area.verticalScrollBar()
+        self.setVisible(bar.value() < bar.maximum())
+        self.raise_()
+
+    def paintEvent(self, event):
+        gradient = QLinearGradient(0, 0, 0, self.height())
+        clear = QColor(WINDOW)
+        clear.setAlpha(0)
+        gradient.setColorAt(0, clear)
+        gradient.setColorAt(1, QColor(WINDOW))
+        QPainter(self).fillRect(self.rect(), gradient)
 
 
 class Chip(QPushButton):
@@ -1094,6 +1131,7 @@ class MainWindow(QMainWindow):
         area.setFrameShape(QFrame.NoFrame)
         area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         area.setWidget(content)
+        ScrollFade(area)
         return area
 
     def _centered(self, widget: QWidget, width: int) -> QHBoxLayout:
