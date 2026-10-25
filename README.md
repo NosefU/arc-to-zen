@@ -149,6 +149,9 @@ Closing the window deletes the backup.
   for other languages the result links to
   [Firefox dictionaries](https://addons.mozilla.org/firefox/language-tools/),
   and the next migration picks up a dictionary added there.
+- **Toolbars**: Zen gets a single toolbar when Arc shows the address only in
+  the sidebar, and separate toolbars when Arc shows it in a top bar. Arc for
+  Windows always shows it on top, so there Zen always gets separate toolbars.
 
 ## Command line
 

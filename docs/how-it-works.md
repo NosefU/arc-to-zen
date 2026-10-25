@@ -102,9 +102,11 @@ the most recent space need no route, since that is Zen's default.
   sets it to `false`.
 - **Toolbars**: `topBarURLEnabled` in
   `~/Library/Preferences/company.thebrowser.Browser.plist` sets
-  `zen.view.use-single-toolbar = false`; otherwise `true`.
+  `zen.view.use-single-toolbar = false`; otherwise `true`. Arc for Windows
+  always shows the URL in a top bar, so there it is always `false`.
 - Without Arc (Just the look, `--look-only`) both follow a fresh Arc:
-  compact mode off and a single toolbar (`ARC_DEFAULT_LAYOUT`).
+  compact mode off, and a single toolbar on macOS or multiple toolbars on
+  Windows (`ARC_DEFAULT_LAYOUT`).
 - **Drag-to-split**: `zen.splitView.drag-over-split-threshold = 15` and
   `zen.splitView.drag-over-split-delayMC = 250`.
 

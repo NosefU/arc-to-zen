@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import plistlib
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -25,10 +26,13 @@ SPLIT_DRAG_PREFS = {
 }
 
 
-# How a fresh Arc looks: the sidebar shown, the URL in it rather than in a top bar
+# Arc for Windows always shows the URL in a top bar; Arc for macOS has a setting for it
+ARC_WINDOWS_TOP_BAR = sys.platform == "win32"
+
+# How a fresh Arc looks: the sidebar shown, the URL in it rather than in a top bar (on macOS)
 ARC_DEFAULT_LAYOUT = {
     "zen.view.compact.enable-at-startup": False,
-    "zen.view.use-single-toolbar": True,
+    "zen.view.use-single-toolbar": not ARC_WINDOWS_TOP_BAR,
 }
 
 
@@ -64,6 +68,8 @@ def sidebar_prefs(arc_profile: str | Path | None = None) -> Dict[str, Any]:
 
 def toolbar_prefs(arc_profile: str | Path | None = None) -> Dict[str, Any]:
     """Arc's URL in the top bar -> Zen "Multiple toolbars"; otherwise "Single toolbar"."""
+    if ARC_WINDOWS_TOP_BAR:
+        return {"zen.view.use-single-toolbar": False}
     defaults = arc_user_defaults(arc_profile)
     if "topBarURLEnabled" not in defaults:
         return {}
