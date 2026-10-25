@@ -13,7 +13,7 @@ from .arc_urls import convert_arc_url
 from .boosts import migrate_boosts
 from .containers import sync_containers
 from .cookies import migrate_cookies
-from .link_routing import migrate_link_routing
+from .link_routing import ARC_HAS_LINK_ROUTING, migrate_link_routing
 from .local_storage import migrate_local_storage
 from .arc_look_mod import install_arc_look_mod
 from .zen_settings import apply_zen_settings
@@ -394,7 +394,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
             ),
         ),
         (
-            options.link_routing,
+            options.link_routing and ARC_HAS_LINK_ROUTING,
             MigrationStep(
                 "Copy Air Traffic Control rules to Space Routing",
                 lambda: migrate_link_routing(

@@ -49,6 +49,7 @@ except ImportError as exc:
     print('Install dependencies with: pip install -e ".[desktop]"')
     raise
 
+from .link_routing import ARC_HAS_LINK_ROUTING
 from .migration import ARC_LOOK_KEYS, MigrationOptions, look_only, migration_steps, run_migration, use_utf8_output
 from .profile_paths import (
     discover_arc_profiles,
@@ -931,7 +932,8 @@ CATEGORIES = [
     ], KEYCHAIN_NOTE, ("cookies", "passwords")),
     ("Rules", [
         Choice("boosts", "Boosts", "CSS and hidden elements per site; Zen boosts have no JavaScript"),
-        Choice("link_routing", "Air Traffic Control", "Rules that open links in a space become Zen Space Routing"),
+        *([Choice("link_routing", "Air Traffic Control", "Rules that open links in a space become Zen Space Routing")]
+          if ARC_HAS_LINK_ROUTING else []),
     ], "", ()),
     ("Languages", [
         Choice("website_languages", "Website languages",
@@ -956,7 +958,7 @@ PRESET_KEYS = [c.key for _, choices, _, _ in CATEGORIES for c in choices if c.ke
 TABS_ONLY = {"favicons", "folder_states", "repair_tabs", "workspace_icons", "workspace_themes", "default_theme"}
 PRESETS = [
     ("tabs", "Just tabs", "Spaces, tabs and how they look. Nothing else in Zen changes.", False),
-    ("all", "Arc as it was", "Plus sign-ins, boosts, routing and an Arc-like Zen.", True),
+    ("all", "Arc as it was", f"Plus sign-ins, boosts{', routing' if ARC_HAS_LINK_ROUTING else ''} and an Arc-like Zen.", True),
     ("look", "Just the look", "Make Zen look like Arc. Your tabs and spaces in Zen stay.", False),
     ("custom", "Custom", "Turn items on and off below.", False),
 ]
@@ -1662,7 +1664,7 @@ class MainWindow(QMainWindow):
             default_theme=v["default_theme"] and v["workspace_themes"],
             containers=v["containers"],
             boosts=v["boosts"],
-            link_routing=v["link_routing"],
+            link_routing=v.get("link_routing", False),
             arc_look_mod=v["arc_look_mod"],
             sidebar_mode=v["sidebar_mode"],
             toolbar_layout=v["toolbar_layout"],

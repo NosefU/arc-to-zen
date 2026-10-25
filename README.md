@@ -16,7 +16,8 @@ look like Arc.
 - 🔑 saved passwords
 - 🗄️ sites' localStorage, such as site settings and some sign-ins
 - 🚀 boosts, as Zen boosts
-- 🛫 Air Traffic Control rules, as Zen Space Routing
+- 🛫 Air Traffic Control rules, as Zen Space Routing (macOS; Arc for Windows
+  has none)
 - 🗣️ languages: the languages sites are asked for, what to always or never
   translate, the spellcheck dictionary, and the interface language
 - 🎛️ an Arc-like Zen: the Arc Look mod, Arc's sidebar and toolbars, easier
@@ -83,7 +84,7 @@ Everything is on one screen.
   which makes it **Custom**. Hover an item for what it does.
   - **Just tabs**: spaces, tabs and how they look; nothing else in Zen changes.
   - **Arc as it was** (picked when the app opens): also sign-ins, boosts,
-    Air Traffic Control, languages and an Arc-like Zen.
+    Air Traffic Control (macOS), languages and an Arc-like Zen.
   - **Just the look**: no migration, only the Arc look for Zen (see above). The
     spaces list marks which spaces Zen has; only those get their Arc icon and
     colors. Without Arc on the Mac it is the only preset.

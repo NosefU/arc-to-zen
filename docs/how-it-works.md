@@ -84,11 +84,12 @@ same boosts instead of duplicating them.
 ## Air Traffic Control
 
 Arc rules that open matching links in a specific space
-(`StorableLinkRouting.json`) become Zen Space Routing routes to the workspace
-with the same name. "Contains" and regex conditions map directly, "is" maps to
-Zen's "equal to", and "starts/ends with" become a regex; a rule with several URL
-conditions becomes one regex that requires all of them. Rules that open links in
-the most recent space need no route, since that is Zen's default.
+(`StorableLinkRouting.json`, macOS only: Arc for Windows has no Air Traffic
+Control) become Zen Space Routing routes to the workspace with the same name.
+"Contains" and regex conditions map directly, "is" maps to Zen's "equal to", and
+"starts/ends with" become a regex; a rule with several URL conditions becomes
+one regex that requires all of them. Rules that open links in the most recent
+space need no route, since that is Zen's default.
 
 ## Zen settings
 

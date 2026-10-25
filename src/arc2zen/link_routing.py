@@ -11,6 +11,7 @@ import json
 import logging
 import re
 import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
@@ -20,6 +21,9 @@ from .profile_paths import arc_json_path
 from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
 
 logger = logging.getLogger(__name__)
+
+# Arc for Windows has no Air Traffic Control
+ARC_HAS_LINK_ROUTING = sys.platform != "win32"
 
 # Arc URL condition kind -> (Zen matchType, how to turn the text into Zen's reference)
 URL_MATCH_KINDS = {
