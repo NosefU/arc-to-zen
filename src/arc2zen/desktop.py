@@ -22,7 +22,7 @@ if sys.stderr is None:
 try:
     import psutil
     from PySide6.QtCore import QByteArray, QEvent, QPoint, QRect, QRectF, QSize, Qt, QThread, QTimer, QUrl, Signal
-    from PySide6.QtGui import QColor, QDesktopServices, QIcon, QPainter, QPalette, QPixmap
+    from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics, QIcon, QPainter, QPalette, QPixmap
     from PySide6.QtSvg import QSvgRenderer
     from PySide6.QtWidgets import (
         QApplication,
@@ -483,6 +483,23 @@ def zen_space_names(profile: Path) -> set[str]:
     except Exception:
         return set()
     return {space.get("name") for space in spaces if space.get("name")}
+
+
+class Chip(QPushButton):
+    """An option pill; it is as wide as its label in the bolder font of the checked state.
+
+    Qt sizes it with the unchecked font, and on Windows the bold label no longer fits.
+    """
+
+    def sizeHint(self) -> QSize:
+        hint = super().sizeHint()
+        bold = QFont(self.font())
+        bold.setWeight(QFont.Weight.DemiBold)
+        extra = QFontMetrics(bold).horizontalAdvance(self.text()) - self.fontMetrics().horizontalAdvance(self.text())
+        return QSize(hint.width() + max(0, extra), hint.height())
+
+    def minimumSizeHint(self) -> QSize:
+        return self.sizeHint()
 
 
 class FlowLayout(QLayout):
@@ -1121,7 +1138,7 @@ class MainWindow(QMainWindow):
         return aside
 
     def _chip(self, choice: Choice) -> QPushButton:
-        chip = QPushButton()
+        chip = Chip()
         chip.setObjectName("Chip")
         chip.setCheckable(True)
         chip.setToolTip(choice.hint)
