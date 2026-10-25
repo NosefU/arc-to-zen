@@ -36,6 +36,7 @@ and Arc for Windows is supported.
 - Progress, a result screen with notes, and the log one click away.
 - Close Zen if needed closes only the Zen running the target profile.
 - Without Zen the app says how to get it.
+- The window shows the app's version and links to its GitHub page.
 
 ### Windows
 

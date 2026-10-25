@@ -49,6 +49,7 @@ except ImportError as exc:
     print('Install dependencies with: pip install -e ".[desktop]"')
     raise
 
+from . import __version__
 from .link_routing import ARC_HAS_LINK_ROUTING
 from .migration import ARC_LOOK_KEYS, MigrationOptions, look_only, migration_steps, run_migration, use_utf8_output
 from .profile_paths import (
@@ -461,6 +462,18 @@ def label(text: str = "", role: Optional[str] = None, wrap: bool = False) -> QLa
     if role:
         widget.setProperty("role", role)
     widget.setWordWrap(wrap)
+    return widget
+
+
+def web_link(text: str, url: str) -> str:
+    """Rich text for a link that opens in the browser, styled like the app's links."""
+    return f'<a href="{url}" style="color: {ACCENT_TEXT}; font-weight: 600; text-decoration: none;">{text}</a>'
+
+
+def link_label(html: str) -> QLabel:
+    widget = label(html, "small")
+    widget.setTextFormat(Qt.RichText)
+    widget.setOpenExternalLinks(True)
     return widget
 
 
@@ -989,6 +1002,7 @@ PRESETS = [
     ("custom", "Custom", "Turn items on and off below.", False),
 ]
 ZEN_DOWNLOAD_URL = "https://zen-browser.app/download/"
+GITHUB_URL = "https://github.com/NosefU/arc-to-zen"
 # The rows "just the look" shows; the others don't apply to it
 LOOK_ROWS = ("Look", "Zen setup", "Safety")
 ZEN_SETUP = [("arc_look_mod", "Arc Look mod"), ("sidebar_mode", "sidebar"), ("toolbar_layout", "toolbars"),
@@ -1145,7 +1159,9 @@ class MainWindow(QMainWindow):
         )
         layout.addWidget(logo)
         layout.addLayout(text_column(
-            label("Arc → Zen", "title"), label("Pick spaces, pick how much to bring, press Migrate", "small")), 1)
+            label("Arc → Zen", "title"),
+            link_label(f"Pick spaces, pick how much to bring, press Migrate · v{__version__} · "
+                       + web_link("GitHub", GITHUB_URL))), 1)
         self.arc_endpoint = Endpoint("Arc data folder")
         self.arc_endpoint.clicked.connect(lambda: self.choose_profile(self.arc_endpoint, self.arc_combo, self.browse_arc))
         self.zen_endpoint = Endpoint("Zen profile")
@@ -1386,6 +1402,13 @@ class MainWindow(QMainWindow):
         head.addLayout(self._centered(self.result_hint, 440))
         self.rollback_link = self._link("Something went wrong? Roll back", self.ask_rollback)
         head.addWidget(self.rollback_link, 0, Qt.AlignHCenter)
+        # Asked only after a run that went through
+        self.star_line = link_label("Glad it helped? " + web_link("★ Star Arc to Zen on GitHub ↗", GITHUB_URL))
+        self.star_line.setAlignment(Qt.AlignCenter)
+        self.star_line.setMinimumWidth(280)
+        self.star_line.setStyleSheet(f"border-top: 1px solid {LINE}; padding-top: 14px; margin-top: 10px;")
+        self.star_line.setToolTip(GITHUB_URL)
+        head.addWidget(self.star_line, 0, Qt.AlignHCenter)
         self.rollback_confirm = frame("Confirm")
         confirm = QVBoxLayout(self.rollback_confirm)
         confirm.setContentsMargins(14, 12, 14, 12)
@@ -2188,6 +2211,7 @@ class MainWindow(QMainWindow):
         self.result_hint.setText(f"{check} {keep}" if ok else keep)
         self.result_hint.setVisible(can_roll_back)
         self.rollback_link.setVisible(ok and can_roll_back)
+        self.star_line.setVisible(ok)
         self.rollback_confirm.setVisible(False)
         self.rollback_confirm_title.setText(f"Roll Zen back to {self.before_runs()}?")
         self.rollback_confirm_text.setText(
@@ -2281,6 +2305,7 @@ class MainWindow(QMainWindow):
 
     def ask_rollback(self) -> None:
         self.rollback_link.setVisible(False)
+        self.star_line.setVisible(False)
         self.rollback_confirm.setVisible(True)
         QTimer.singleShot(0, self.place_result)
         # With notes the result is tall and the question lands below the fold
@@ -2289,6 +2314,7 @@ class MainWindow(QMainWindow):
     def cancel_rollback(self) -> None:
         self.rollback_confirm.setVisible(False)
         self.rollback_link.setVisible(True)
+        self.star_line.setVisible(True)
         QTimer.singleShot(0, self.place_result)
 
     def start_rollback(self) -> None:
@@ -2342,7 +2368,7 @@ class MainWindow(QMainWindow):
         self.result_text.setText(text)
         for widget in (self.result_stats, self.result_notes, self.result_rollback, self.result_action, self.result_exit,
                        self.steps_toggle, self.result_hint, self.rollback_link, self.rollback_confirm,
-                       self.steps_card, self.log):
+                       self.star_line, self.steps_card, self.log):
             widget.setVisible(False)
         self.refresh()
         QTimer.singleShot(0, self.place_result)
