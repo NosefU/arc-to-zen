@@ -103,7 +103,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-interface-language",
         action="store_true",
-        help="Do not make Zen's menus and date formats follow macOS (or Arc's own language) as Arc does.",
+        help="Do not make Zen's menus and date formats follow the system (or Arc's own language) as Arc does.",
     )
     parser.add_argument(
         "--no-link-routing",
@@ -123,7 +123,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--cookies",
         action="store_true",
-        help="Copy cookies of the migrated Arc profiles into their Zen containers. macOS asks for Keychain access.",
+        help="Copy cookies of the migrated Arc profiles into their Zen containers. On macOS, asks for Keychain access.",
     )
     parser.add_argument(
         "--local-storage",
@@ -133,7 +133,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--passwords",
         action="store_true",
-        help="Copy saved passwords of the migrated Arc profiles into Zen. Starts Zen headless on the target profile.",
+        help="Copy saved passwords of the migrated Arc profiles into Zen. On macOS, asks for Keychain access. Starts Zen headless on the target profile.",
     )
     parser.add_argument(
         "--no-tab-repair",

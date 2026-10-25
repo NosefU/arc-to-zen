@@ -85,7 +85,7 @@ def apply_zen_settings(
     split_drag: bool = True,
     arc_defaults: bool = False,
 ) -> bool:
-    """With arc_defaults (no Arc on this Mac) the sidebar and toolbars take Arc's defaults."""
+    """With arc_defaults (no Arc here) the sidebar and toolbars take Arc's defaults."""
     profile = resolve_zen_profile(zen_profile)
     prefs: Dict[str, Any] = {}
     if arc_defaults:

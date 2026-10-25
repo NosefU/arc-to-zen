@@ -87,7 +87,7 @@ Everything is on one screen.
     Air Traffic Control (macOS), languages and an Arc-like Zen.
   - **Just the look**: no migration, only the Arc look for Zen (see above). The
     spaces list marks which spaces Zen has; only those get their Arc icon and
-    colors. Without Arc on the Mac it is the only preset.
+    colors. Without Arc it is the only preset.
   - **Safety**: close Zen automatically if it's open (only the Zen running the
     target profile; other Zen windows keep running), and where Essentials that
     belong to no space go.

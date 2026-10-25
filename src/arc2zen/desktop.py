@@ -64,6 +64,7 @@ from .snapshot import discard, rollback, snapshot_profile
 from .space_overview import SpaceOverview, arc_space_overview
 from .zen_assets import zen_selectable_icon_svg
 from .zen_runner import ZenRunnerError, find_zen_binary
+from .zen_settings import ARC_WINDOWS_TOP_BAR
 
 
 # Palette of the window; the window always uses the light appearance.
@@ -909,6 +910,9 @@ class Choice:
 
 # Arc keeps its key in the macOS Keychain; on Windows it is unlocked for the signed-in user without asking
 KEYCHAIN_NOTE = "macOS will ask once for access to “Arc Safe Storage” in your Keychain." if sys.platform == "darwin" else ""
+THIS_COMPUTER = "this Mac" if sys.platform == "darwin" else "this computer"
+# Where a fresh Arc shows the address, for "just the look" without Arc
+ARC_DEFAULT_ADDRESS = "in a top bar" if ARC_WINDOWS_TOP_BAR else "in it"
 
 # The rows of "What comes along": title, chips, and a note shown while any of its keys is on
 CATEGORIES = [
@@ -996,7 +1000,7 @@ class MainWindow(QMainWindow):
         self.arc_ok = False
         self.arc_forced = False
         self.zen_spaces: set[str] = set()
-        # "ok", "missing" (no Zen profile on this Mac) or "wrong" (the chosen folder has none)
+        # "ok", "missing" (no Zen profile on this computer) or "wrong" (the chosen folder has none)
         self.zen_state = "ok"
         # What the last run was, for its result screen
         self.run_look = False
@@ -1552,7 +1556,7 @@ class MainWindow(QMainWindow):
             self.look_mode = self.arc_forced = False
         if not self.arc_ok:
             missing = not self.arc_combo.currentText()
-            self.arc_endpoint.set_status("Arc", "Not found on this Mac" if missing else "No Arc data here",
+            self.arc_endpoint.set_status("Arc", f"Not found on {THIS_COMPUTER}" if missing else "No Arc data here",
                                          OFF if missing else DANGER,
                                          f"{path}\nChoose the folder with StorableSidebar.json.")
             self.spaces_message.setText(
@@ -1596,7 +1600,7 @@ class MainWindow(QMainWindow):
                 self.zen_endpoint.set_status("Zen", "No Zen profile here", DANGER,
                                              f"{text}\nChoose a profile folder or Zen's data folder.", "danger")
             else:
-                self.zen_endpoint.set_status("Zen", "Not found on this Mac", OFF,
+                self.zen_endpoint.set_status("Zen", f"Not found on {THIS_COMPUTER}", OFF,
                                              "Install Zen and open it once, or choose its profile folder.", "warn")
         else:
             self.zen_state = "ok"
@@ -1760,7 +1764,7 @@ class MainWindow(QMainWindow):
             if enabled:
                 chip.setToolTip(choice.hint)
             else:
-                chip.setToolTip("Needs Arc on this Mac" if key in ARC_LOOK_KEYS and not self.arc_ok
+                chip.setToolTip(f"Needs Arc on {THIS_COMPUTER}" if key in ARC_LOOK_KEYS and not self.arc_ok
                                 else "Turn on space colors first")
             chip.setProperty("dimmed", "false" if enabled else "true")
             restyle(chip)
@@ -1771,7 +1775,7 @@ class MainWindow(QMainWindow):
             card.set_checked(key == preset)
             zen_ok = self.zen_state == "ok"
             needs_arc = not self.arc_ok and key != "look"
-            card.set_available(zen_ok and not needs_arc, "Needs Arc on this Mac." if needs_arc else "")
+            card.set_available(zen_ok and not needs_arc, f"Needs Arc on {THIS_COMPUTER}." if needs_arc else "")
         self.add_mode.set_checked(not v["nuke"])
         self.replace_mode.set_checked(v["nuke"])
 
@@ -1785,7 +1789,7 @@ class MainWindow(QMainWindow):
             mode.setEnabled(zen_ok)
             mode.fade.setOpacity(1.0 if zen_ok else 0.45)
         missing = self.zen_state == "missing"
-        self.zen_banner_title.setText("Zen isn't on this Mac yet" if missing else "This folder has no Zen profile")
+        self.zen_banner_title.setText(f"Zen isn't on {THIS_COMPUTER} yet" if missing else "This folder has no Zen profile")
         self.zen_banner_text.setText(
             "Install Zen and open it once so it creates a profile, then come back. Or point to a profile "
             "folder if Zen keeps it somewhere else." if missing else
@@ -1806,7 +1810,7 @@ class MainWindow(QMainWindow):
             "Your tabs, spaces and sign-ins in Zen stay as they are. Only how Zen looks changes. "
             "Icons and colors go to Zen spaces named like your Arc spaces." if self.arc_ok else
             "Your tabs, spaces and sign-ins in Zen stay as they are. Without Arc, the sidebar and toolbars "
-            "take Arc's defaults: the sidebar always shown, the address in it.")
+            f"take Arc's defaults: the sidebar always shown, the address {ARC_DEFAULT_ADDRESS}.")
         for row in self.space_rows:
             row.set_look(row.space.name in self.zen_spaces if look else None)
         self.choose_arc_link.setVisible(not self.arc_ok)
