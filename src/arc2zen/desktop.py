@@ -396,12 +396,35 @@ def zen_processes_using_profile(profile: str | Path) -> list[psutil.Process]:
     return matches
 
 
+def close_windows(pids: set[int]) -> None:
+    """Close the windows of these processes as their close button does."""
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    wm_close = 0x0010
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def close(hwnd, _):
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        if pid.value in pids and user32.IsWindowVisible(hwnd):
+            user32.PostMessageW(hwnd, wm_close, 0, 0)
+        return True
+
+    user32.EnumWindows(close, 0)
+
+
 def terminate_zen_processes(processes: list[psutil.Process]) -> list[psutil.Process]:
-    for process in processes:
-        try:
-            process.terminate()
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            pass
+    if sys.platform == "win32":
+        # terminate() is TerminateProcess on Windows, after which Zen offers to restore a crashed session
+        close_windows({process.pid for process in processes})
+    else:
+        for process in processes:
+            try:
+                process.terminate()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
 
     _, alive = psutil.wait_procs(processes, timeout=15)
     return alive

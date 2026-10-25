@@ -152,6 +152,9 @@ Closing the window deletes the backup.
 - **Toolbars**: Zen gets a single toolbar when Arc shows the address only in
   the sidebar, and separate toolbars when Arc shows it in a top bar. Arc for
   Windows always shows it on top, so there Zen always gets separate toolbars.
+- **Closing Zen on Windows**: Zen's windows are closed as with their close
+  button, so Zen comes back with the last of them; the others are under
+  History → Recently closed windows.
 
 ## Command line
 
