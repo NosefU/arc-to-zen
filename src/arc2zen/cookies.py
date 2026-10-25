@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
 from .arc_crypto import ArcDecryptionError as CookieDecryptionError
-from .arc_crypto import ChromiumDecryptor, arc_safe_storage_password
+from .arc_crypto import ChromiumDecryptor, WindowsChromiumDecryptor, arc_decryptor
 from .profile_paths import arc_profile_dir
 from .sessions import read_mozilla_lz4, resolve_zen_profile
 
@@ -36,14 +36,14 @@ SCHEME_HTTPS = 2
 class ChromiumCookieDecryptor:
     """Decrypts Arc cookie values, removing the host hash newer cookie databases add."""
 
-    def __init__(self, password: bytes):
-        self._decryptor = ChromiumDecryptor(password)
+    def __init__(self, decryptor: ChromiumDecryptor | WindowsChromiumDecryptor):
+        self._decryptor = decryptor
 
     def decrypt(self, encrypted: bytes, host_key: str, db_version: int) -> str:
         plain = self._decryptor.decrypt(encrypted)
         if db_version >= HOST_HASH_DB_VERSION:
             if plain[:32] != hashlib.sha256(host_key.encode()).digest():
-                raise CookieDecryptionError("host hash mismatch; wrong Keychain password?")
+                raise CookieDecryptionError("host hash mismatch; wrong key?")
             plain = plain[32:]
         return plain.decode("utf-8")
 
@@ -178,7 +178,7 @@ def migrate_cookies(
         return False
 
     try:
-        decryptor = ChromiumCookieDecryptor(arc_safe_storage_password())
+        decryptor = ChromiumCookieDecryptor(arc_decryptor(arc_profile))
     except CookieDecryptionError as exc:
         logger.error(f"❌ {exc}")
         return False
@@ -197,7 +197,7 @@ def migrate_cookies(
             stats = {"session": 0, "expired": 0, "partitioned": 0, "undecryptable": 0}
             cookies = list(read_arc_cookies(db_path, decryptor, stats))
             if stats["undecryptable"] and not cookies:
-                raise CookieDecryptionError("No cookie could be decrypted; wrong Keychain password?")
+                raise CookieDecryptionError("No cookie could be decrypted; wrong key?")
             written = write_zen_cookies(con, cookies, user_context_id)
             total += written
             skipped = ", ".join(f"{count} {kind}" for kind, count in stats.items() if count) or "none"

@@ -12,8 +12,8 @@ look like Arc.
 - 🗂️ nested pinned folders, open or closed as in Arc
 - 🌐 site icons, so tabs don't start blank
 - 🧳 Arc profiles as Zen containers: each space opens in its profile's container
-- 🍪 cookies, so sites stay signed in (macOS)
-- 🔑 saved passwords (macOS)
+- 🍪 cookies, so sites stay signed in
+- 🔑 saved passwords
 - 🗄️ sites' localStorage, such as site settings and some sign-ins
 - 🚀 boosts, as Zen boosts
 - 🛫 Air Traffic Control rules, as Zen Space Routing
@@ -121,9 +121,9 @@ Closing the window deletes the backup.
 
 ## Good to know
 
-- **Keychain**: cookies and passwords need Arc's key from the macOS Keychain
-  ("Arc Safe Storage"), so macOS asks for access once per run. Arc on Windows
-  is not supported for them yet.
+- **Keychain**: on macOS cookies and passwords need Arc's key from the
+  Keychain ("Arc Safe Storage"), so macOS asks for access once per run. On
+  Windows the key opens for the signed-in user without asking.
 - **Cookies**: sign-ins that last only until the browser closes are not
   copied; cookies Zen already has for the same site and container are
   replaced.

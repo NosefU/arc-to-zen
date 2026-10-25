@@ -866,7 +866,8 @@ class Choice:
     depends_on: str = ""
 
 
-KEYCHAIN_NOTE = "macOS will ask once for access to “Arc Safe Storage” in your Keychain."
+# Arc keeps its key in the macOS Keychain; on Windows it is unlocked for the signed-in user without asking
+KEYCHAIN_NOTE = "macOS will ask once for access to “Arc Safe Storage” in your Keychain." if sys.platform == "darwin" else ""
 
 # The rows of "What comes along": title, chips, and a note shown while any of its keys is on
 CATEGORIES = [

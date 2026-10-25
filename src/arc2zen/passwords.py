@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 from urllib.parse import urlsplit
 
-from .arc_crypto import ArcDecryptionError, ChromiumDecryptor, arc_safe_storage_password
+from .arc_crypto import ArcDecryptionError, ChromiumDecryptor, WindowsChromiumDecryptor, arc_decryptor
 from .profile_paths import arc_profile_dir
 from .sessions import resolve_zen_profile
 from .zen_runner import ZenRunnerError, run_in_zen
@@ -44,7 +44,7 @@ def chromium_time_ms(value: Optional[int]) -> Optional[int]:
     return max((value - CHROMIUM_EPOCH_OFFSET_US) // 1000, 0)
 
 
-def read_arc_logins(db_path: Path, decryptor: ChromiumDecryptor, stats: Dict[str, int]) -> Iterator[Dict[str, Any]]:
+def read_arc_logins(db_path: Path, decryptor: ChromiumDecryptor | WindowsChromiumDecryptor, stats: Dict[str, int]) -> Iterator[Dict[str, Any]]:
     """Yield Arc logins as nsILoginInfo fields; never logs passwords."""
     con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro&immutable=1", uri=True)
     try:
@@ -149,7 +149,7 @@ def migrate_passwords(
         return True
 
     try:
-        decryptor = ChromiumDecryptor(arc_safe_storage_password())
+        decryptor = arc_decryptor(arc_profile)
     except ArcDecryptionError as exc:
         logger.error(f"❌ {exc}")
         return False
@@ -163,7 +163,7 @@ def migrate_passwords(
             if db_path.is_file():
                 found.extend(read_arc_logins(db_path, decryptor, stats))
         if stats["undecryptable"] and not found:
-            logger.error(f"❌ No password of Arc profile {arc_profile_name!r} could be decrypted; wrong Keychain password?")
+            logger.error(f"❌ No password of Arc profile {arc_profile_name!r} could be decrypted; wrong key?")
             return False
         skipped = ", ".join(f"{count} {kind}" for kind, count in stats.items() if count) or "none"
         logger.info(f"   Arc profile {arc_profile_name!r}: {len(found)} passwords read (skipped: {skipped})")

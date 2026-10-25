@@ -47,20 +47,21 @@ IndexedDB).
 
 ## Cookies
 
-The Arc cookie key comes from the macOS Keychain item `Arc Safe Storage`
-(`ARC_SAFE_STORAGE_PASSWORD` overrides it for tests). Only persistent,
-unexpired, unpartitioned cookies are copied into `cookies.sqlite` with the
-container's `userContextId`; existing Zen cookies with the same name, host,
-path, and container are overwritten. Session cookies are skipped.
+On macOS the Arc cookie key comes from the Keychain item `Arc Safe Storage`
+(`ARC_SAFE_STORAGE_PASSWORD` overrides it for tests). On Windows it is the
+DPAPI-protected `os_crypt.encrypted_key` in Arc's `User Data/Local State`, and
+values are AES-256-GCM (`v10`, a 12-byte nonce, the ciphertext and tag). Only
+persistent, unexpired, unpartitioned cookies are copied into `cookies.sqlite`
+with the container's `userContextId`; existing Zen cookies with the same name,
+host, path, and container are overwritten. Session cookies are skipped.
 
 ## Passwords
 
-Arc's `Login Data` and `Login Data For Account` are decrypted with the same
-Keychain key, then Zen is started headless on the target profile for a few
-seconds so Zen encrypts the logins with its own key. Passwords never touch the
-disk in plain text. Logins that already exist for the same site, auth kind, and
-username are skipped; "never save" entries and federated sign-ins are not
-copied.
+Arc's `Login Data` and `Login Data For Account` are decrypted with the same key,
+then Zen is started headless on the target profile for a few seconds so Zen
+encrypts the logins with its own key. Passwords never touch the disk in plain
+text. Logins that already exist for the same site, auth kind, and username are
+skipped; "never save" entries and federated sign-ins are not copied.
 
 ## localStorage
 
