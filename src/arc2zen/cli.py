@@ -14,6 +14,7 @@ from .migration import (
     look_only,
     nuke_zen_profile_only,
     run_migration,
+    use_utf8_output,
 )
 from .snapshot import rollback, snapshot_profile
 
@@ -155,6 +156,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    use_utf8_output()
     logging.basicConfig(level=logging.INFO, format="%(message)s", force=True)
     args = parse_args()
 

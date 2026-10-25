@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 import tempfile
 from dataclasses import dataclass, fields, replace
 from pathlib import Path
@@ -33,6 +34,13 @@ logger = logging.getLogger(__name__)
 LineCallback = Callable[[str], None]
 StepCallback = Callable[[int, int, str], None]
 SnapshotCallback = Callable[[Path], None]
+
+
+def use_utf8_output() -> None:
+    """Let the steps print emoji on Windows, where pipes, files and pythonw's streams use the ANSI code page."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
 
 @dataclass(frozen=True)

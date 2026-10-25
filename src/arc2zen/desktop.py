@@ -49,7 +49,7 @@ except ImportError as exc:
     print('Install dependencies with: pip install -e ".[desktop]"')
     raise
 
-from .migration import ARC_LOOK_KEYS, MigrationOptions, look_only, migration_steps, run_migration
+from .migration import ARC_LOOK_KEYS, MigrationOptions, look_only, migration_steps, run_migration, use_utf8_output
 from .profile_paths import (
     discover_arc_profiles,
     discover_zen_profiles,
@@ -2241,6 +2241,7 @@ class MainWindow(QMainWindow):
 
 
 def main() -> int:
+    use_utf8_output()
     QApplication.setDesktopSettingsAware(False)
     QApplication.setApplicationName("Arc to Zen")
     QApplication.setOrganizationName("Thinkscape")
