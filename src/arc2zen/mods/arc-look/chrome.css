@@ -118,3 +118,88 @@
     }
   }
 }
+
+/* Ctrl+Tab panel as in Arc: a compact opaque card with small previews, the site
+   icon next to the title and the selected tab tinted lavender.
+   Firefox sizes the panel to most of the screen, so the panel itself stays
+   transparent and the previews grid, sized to its content, draws the card.
+   Sizes are measured from Arc's own panel. */
+@media -moz-pref("mod.arclook.ctrltab-panel") {
+  #ctrlTab-panel {
+    --panel-background-color: transparent !important;
+    --panel-border-color: transparent !important;
+    /* Room for the card's shadow inside the popup */
+    --panel-padding: 40px !important;
+    --panel-text-color: light-dark(#494949, rgb(241, 240, 245)) !important;
+    font-weight: 600 !important;
+  }
+  #ctrlTab-panel::part(content) {
+    align-items: center !important;
+    overflow: visible !important;
+  }
+  #ctrlTab-previews {
+    width: max-content !important;
+    margin-inline: auto !important;
+    grid-template-columns: repeat(var(--ctrlTab-previews-per-row), auto) !important;
+    gap: 0 !important;
+    padding: 15px !important;
+    border-radius: 22px !important;
+    background: light-dark(rgb(248, 248, 248), rgb(40, 39, 48)) !important;
+    box-shadow: 0 0 0 1px light-dark(#a4a4a4, rgba(255, 255, 255, .16)), 0 10px 30px -8px rgba(0, 0, 0, .4) !important;
+  }
+  .ctrlTab-preview,
+  #ctrlTab-showAll {
+    text-shadow: none !important;
+  }
+  .ctrlTab-preview-inner {
+    display: grid !important;
+    grid-template-columns: 16px minmax(0, 1fr) !important;
+    align-items: center !important;
+    column-gap: 9px !important;
+    margin-top: 0 !important;
+    padding: 12px 12px 12px !important;
+    border: 0 !important;
+    border-radius: 11px !important;
+  }
+  .ctrlTab-canvas {
+    grid-column: 1 / -1 !important;
+    margin-bottom: 11px !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 10px rgba(0, 0, 0, .22) !important;
+  }
+  .ctrlTab-canvas > img,
+  .ctrlTab-canvas > canvas {
+    width: 157px !important;
+    height: auto !important;
+  }
+  .ctrlTab-favicon-container {
+    justify-content: center !important;
+  }
+  .ctrlTab-favicon[src] {
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 3px !important;
+    background: none !important;
+  }
+  /* A zero width that grows to the cell keeps a long title from widening the card */
+  .ctrlTab-label {
+    font-size: 14px !important;
+    line-height: 18px !important;
+    text-align: start !important;
+    margin: 0 !important;
+    width: 0 !important;
+    min-width: 100% !important;
+  }
+  .ctrlTab-preview:focus > .ctrlTab-preview-inner {
+    background-color: light-dark(rgb(196, 198, 250), rgba(124, 114, 255, .4)) !important;
+    color: light-dark(#000, #fff) !important;
+  }
+  /* Arc has no "show all tabs" button under the previews */
+  #ctrlTab-showAll-container {
+    display: none !important;
+  }
+}

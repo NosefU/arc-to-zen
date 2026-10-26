@@ -48,5 +48,11 @@
     "label": "Peek window with rounded corners and bottom padding",
     "type": "checkbox",
     "defaultValue": true
+  },
+  {
+    "property": "mod.arclook.ctrltab-panel",
+    "label": "Arc-like Ctrl+Tab panel",
+    "type": "checkbox",
+    "defaultValue": true
   }
 ]

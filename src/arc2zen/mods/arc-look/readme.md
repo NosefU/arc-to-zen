@@ -14,3 +14,5 @@ Zen interface tweaks towards Arc. Each part can be switched on or off in the mod
   theme and dark in the dark theme, as in Arc, with vivid blue icons. Zen does the opposite by
   default. The icon color can be changed in the mod settings.
 - **Arc-like Peek window.** Rounded corners (10px) and 12px of space at the bottom.
+- **Arc-like Ctrl+Tab panel.** A compact light card with small previews, the site icon next to
+  the title and the selected tab in lavender, without the "show all tabs" button.

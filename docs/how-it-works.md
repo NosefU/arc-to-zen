@@ -133,9 +133,10 @@ GitHub can't attach a file through a link, so the user drags the report in.
 
 - **Arc Look mod** (`src/arc2zen/mods/arc-look`): container line on the left of
   tabs and none on Essentials, a 32 px top bar, an address bar sized to the URL
-  (up to 640 px) without a background, light Peek buttons, and a rounded Peek
-  window. The migrator installs it, rebuilds Zen's mod stylesheet, sets the
-  mod's default settings, and sets `zen.urlbar.behavior = float`.
+  (up to 640 px) without a background, light Peek buttons, a rounded Peek
+  window, and an Arc-like Ctrl+Tab panel. The migrator installs it, rebuilds
+  Zen's mod stylesheet, sets the mod's default settings, and sets
+  `zen.urlbar.behavior = float`.
 - **Sidebar**: `sidebarMode = noChrome` in `StorableWindows.json` (a hidden Arc
   sidebar) sets `zen.view.compact.enable-at-startup = true`; a shown sidebar
   sets it to `false`.

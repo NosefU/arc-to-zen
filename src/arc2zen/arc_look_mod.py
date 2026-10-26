@@ -23,13 +23,13 @@ MOD_ID = "a0c5c3b9-8036-4004-ba02-ce2b74e41254"
 MOD_META = {
     "id": MOD_ID,
     "name": "Arc Look",
-    "description": "Zen tweaks towards Arc: container line on the left, compact top bar, Arc-like address bar and Peek.",
+    "description": "Zen tweaks towards Arc: container line on the left, compact top bar, Arc-like address bar, Peek and Ctrl+Tab panel.",
     "image": "",
     "author": "nosefu",
-    "version": "1.4.1",
+    "version": "1.5.0",
     "tags": ["arc", "urlbar", "toolbar"],
     "createdAt": "2026-10-23",
-    "updatedAt": "2026-10-23",
+    "updatedAt": "2026-10-26",
     "enabled": True,
 }
 
