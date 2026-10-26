@@ -48,8 +48,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--look-only",
         action="store_true",
-        help="Only make Zen look like Arc: Arc Look mod, Arc's sidebar and toolbars, drag-to-split and, "
-        "for Zen spaces named like Arc spaces, their icons and colors. Tabs, spaces and sign-ins stay "
+        help="Only make Zen look like Arc: Arc Look mod, Arc's sidebar and toolbars, drag-to-split, "
+        "Peek as in Arc and, for Zen spaces named like Arc spaces, their icons and colors. Tabs, spaces and sign-ins stay "
         "as they are. Works without Arc, using Arc's default layout.",
     )
     parser.add_argument(
@@ -94,6 +94,11 @@ def parse_args() -> argparse.Namespace:
         "--no-split-drag",
         action="store_true",
         help="Keep Zen's default thresholds for dragging a tab onto another to split the view.",
+    )
+    parser.add_argument(
+        "--no-peek",
+        action="store_true",
+        help="Keep Zen's Option-click (Alt-click on Windows) for Peek instead of Arc's Shift-click.",
     )
     parser.add_argument(
         "--no-website-languages",
@@ -204,6 +209,7 @@ def main() -> int:
         sidebar_mode=not args.no_sidebar_mode,
         toolbar_layout=not args.no_toolbar_layout,
         split_drag=not args.no_split_drag,
+        peek=not args.no_peek,
         website_languages=not args.no_website_languages,
         interface_language=not args.no_interface_language,
         cookies=args.cookies,

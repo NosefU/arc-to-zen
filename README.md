@@ -21,7 +21,7 @@ look like Arc.
 - 🗣️ languages: the languages sites are asked for, what to always or never
   translate, the spellcheck dictionary, and the interface language
 - 🎛️ an Arc-like Zen: the Arc Look mod, Arc's sidebar and toolbars, easier
-  drag-to-split
+  drag-to-split and Peek on Shift-click
 
 Along the way Arc's own pages open as their Zen counterparts (downloads,
 settings, extensions, passwords), and tabs with broken addresses become blank
@@ -32,7 +32,8 @@ counterpart for and extension pages are skipped; the result lists them.
 
 You don't have to migrate anything. **Just the look** ✨ only restyles Zen —
 the bundled Arc Look mod (compact top bar, floating address bar, Arc-style
-Peek), Arc's sidebar and toolbars, easier drag-to-split, and Arc's icons and
+Peek and Ctrl+Tab panel), Arc's sidebar and toolbars, easier drag-to-split,
+Peek on Shift-click, and Arc's icons and
 colors for Zen spaces named like your Arc spaces — and leaves your tabs, spaces
 and sign-ins as they are. It works without Arc too, with a fresh Arc's layout.
 
@@ -239,7 +240,7 @@ Options:
 - `--no-containers` keeps spaces and tabs out of per-profile containers
 - `--no-boosts`, `--no-link-routing` leave out boosts and Air Traffic Control
 - `--no-arc-look-mod`, `--no-sidebar-mode`, `--no-toolbar-layout`,
-  `--no-split-drag` leave out parts of the Arc-like Zen
+  `--no-split-drag`, `--no-peek` leave out parts of the Arc-like Zen
 - `--no-website-languages`, `--no-interface-language` leave out the language
   settings
 - `--export-file PATH` keeps the intermediate Arc export there

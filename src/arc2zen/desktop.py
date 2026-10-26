@@ -987,6 +987,8 @@ class Choice:
 # Arc keeps its key in the macOS Keychain; on Windows it is unlocked for the signed-in user without asking
 KEYCHAIN_NOTE = "macOS will ask once for access to “Arc Safe Storage” in your Keychain." if sys.platform == "darwin" else ""
 THIS_COMPUTER = "this Mac" if sys.platform == "darwin" else "this computer"
+# The key Zen opens Peek (Glance) with by default
+ALT_KEY = "Option" if sys.platform == "darwin" else "Alt"
 # While it runs, Arc for Windows keeps its cookies and boosts from being read; Arc for macOS doesn't
 ARC_LOCKS_FILES = sys.platform == "win32"
 # Where a fresh Arc shows the address, for "just the look" without Arc
@@ -1027,6 +1029,8 @@ CATEGORIES = [
         Choice("sidebar_mode", "Sidebar like Arc", "A hidden Arc sidebar starts Zen in compact mode"),
         Choice("toolbar_layout", "Toolbars like Arc", "Single or multiple toolbars, as Arc shows the URL"),
         Choice("split_drag", "Easier drag-to-split", "Drop a tab on another to split the view: wider target, half the delay"),
+        Choice("peek", "Peek on Shift-click",
+               f"Shift-click a link to open it in Peek, as in Arc; Zen uses {ALT_KEY}-click"),
     ], "", ()),
 ]
 
@@ -1063,7 +1067,7 @@ REPORT_CONTENTS = [
 # The rows "just the look" shows; the others don't apply to it
 LOOK_ROWS = ("Look", "Zen setup", "Safety")
 ZEN_SETUP = [("arc_look_mod", "Arc Look mod"), ("sidebar_mode", "sidebar"), ("toolbar_layout", "toolbars"),
-             ("split_drag", "drag-to-split")]
+             ("split_drag", "drag-to-split"), ("peek", "Peek")]
 
 
 def preset_values(preset: str) -> Dict[str, bool]:
@@ -1840,6 +1844,7 @@ class MainWindow(QMainWindow):
                 sidebar_mode=v["sidebar_mode"],
                 toolbar_layout=v["toolbar_layout"],
                 split_drag=v["split_drag"],
+                peek=v["peek"],
                 auto_close_zen=v["auto_close_zen"],
                 spaces=names,
             ))
@@ -1862,6 +1867,7 @@ class MainWindow(QMainWindow):
             sidebar_mode=v["sidebar_mode"],
             toolbar_layout=v["toolbar_layout"],
             split_drag=v["split_drag"],
+            peek=v["peek"],
             website_languages=v["website_languages"],
             interface_language=v["interface_language"],
             cookies=v["cookies"],
@@ -1882,6 +1888,8 @@ class MainWindow(QMainWindow):
             done.append("Arc's layout" if self.arc_ok else "Arc's default layout")
         if v["split_drag"]:
             done.append("easier drag-to-split")
+        if v["peek"]:
+            done.append("Peek on Shift-click")
         text = ""
         if done:
             listed = done[0] if len(done) == 1 else ", ".join(done[:-1]) + " and " + done[-1]

@@ -149,6 +149,8 @@ GitHub can't attach a file through a link, so the user drags the report in.
   Windows (`ARC_DEFAULT_LAYOUT`).
 - **Drag-to-split**: `zen.splitView.drag-over-split-threshold = 15` and
   `zen.splitView.drag-over-split-delayMC = 250`.
+- **Peek on Shift-click**: `zen.glance.activation-method = "shift"`, as in Arc;
+  Zen opens Glance on Option-click (Alt-click on Windows) by default.
 
 ## Languages
 

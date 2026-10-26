@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Carry Arc's window layout over to Zen and tune Zen's tab drag-to-split."""
+"""Carry Arc's window layout over to Zen and give Zen Arc's habits: drag-to-split and Peek."""
 
 from __future__ import annotations
 
@@ -24,6 +24,9 @@ SPLIT_DRAG_PREFS = {
     "zen.splitView.drag-over-split-threshold": 15,
     "zen.splitView.drag-over-split-delayMC": 250,
 }
+
+# Arc opens a link in Peek on Shift-click; Zen's Glance needs Option-click (Alt-click on Windows) by default
+PEEK_PREFS = {"zen.glance.activation-method": "shift"}
 
 
 # Arc for Windows always shows the URL in a top bar; Arc for macOS has a setting for it
@@ -83,6 +86,7 @@ def apply_zen_settings(
     sidebar: bool = True,
     toolbar: bool = True,
     split_drag: bool = True,
+    peek: bool = True,
     arc_defaults: bool = False,
 ) -> bool:
     """With arc_defaults (no Arc here) the sidebar and toolbars take Arc's defaults."""
@@ -104,6 +108,8 @@ def apply_zen_settings(
             logger.info("   Arc top bar setting not found; Zen toolbar layout left as is")
     if split_drag:
         prefs.update(SPLIT_DRAG_PREFS)
+    if peek:
+        prefs.update(PEEK_PREFS)
 
     for name, value in prefs.items():
         logger.info(f"   {name} = {json.dumps(value)}")
