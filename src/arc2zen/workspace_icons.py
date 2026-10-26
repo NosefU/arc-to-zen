@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
-from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
+from .sessions import read_mozilla_lz4, resolve_zen_profile, session_window, write_mozilla_lz4
 from .extract import arc_space_name, load_arc_sidebar
 
 
@@ -81,10 +81,7 @@ def update_file(path: Path, icons: Dict[str, str], timestamp: str, create_backup
         return 0
 
     data = read_mozilla_lz4(path)
-    if "windows" in data:
-        spaces = data.get("windows", [{}])[0].get("spaces", [])
-    else:
-        spaces = data.get("spaces", [])
+    spaces = session_window(data).get("spaces", [])
 
     changed = update_space_icons(spaces, icons)
     if changed:

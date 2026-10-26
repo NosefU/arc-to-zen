@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, Tuple
 
-from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
+from .sessions import read_mozilla_lz4, resolve_zen_profile, session_window, write_mozilla_lz4
 from .extract import arc_space_name, load_arc_sidebar
 from .profile_paths import arc_json_path
 
@@ -120,14 +120,10 @@ def zen_folder_paths(spaces: list[Dict[str, Any]], folders: list[Dict[str, Any]]
 
 
 def set_folder_states(data: Dict[str, Any], states: Dict[FolderKey, bool]) -> tuple[int, int]:
-    if "windows" in data:
-        folders = data.get("windows", [{}])[0].get("folders", [])
-        groups = data.get("windows", [{}])[0].get("groups", [])
-        spaces = data.get("windows", [{}])[0].get("spaces", [])
-    else:
-        folders = data.get("folders", [])
-        groups = data.get("groups", [])
-        spaces = data.get("spaces", [])
+    window = session_window(data)
+    folders = window.get("folders", [])
+    groups = window.get("groups", [])
+    spaces = window.get("spaces", [])
 
     folder_ids = zen_folder_paths(spaces, folders)
     groups_by_id = {group.get("id"): group for group in groups}

@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
-from .sessions import read_mozilla_lz4, resolve_zen_profile, write_mozilla_lz4
+from .sessions import read_mozilla_lz4, resolve_zen_profile, session_window, write_mozilla_lz4
 from .extract import arc_space_name, load_arc_sidebar
 
 
@@ -231,9 +231,7 @@ def backup(path: Path, timestamp: str) -> None:
 
 
 def spaces_from_session(data: Dict[str, Any]) -> list[Dict[str, Any]]:
-    if "windows" in data:
-        return data.get("windows", [{}])[0].get("spaces", [])
-    return data.get("spaces", [])
+    return session_window(data).get("spaces", [])
 
 
 def update_file(path: Path, themes: Dict[str, Dict[str, Any]], timestamp: str, create_backups: bool = True) -> int:

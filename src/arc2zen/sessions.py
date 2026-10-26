@@ -65,6 +65,18 @@ def backup_file(filepath: Path, label: str = "backup", timestamp: Optional[str] 
     return backup_path
 
 
+def session_window(data: Dict[str, Any]) -> Dict[str, Any]:
+    """The part of a Zen session file that holds spaces, folders and groups.
+
+    zen-sessions.jsonlz4 holds them at the top; Firefox's session files hold them in
+    the first window, and a recovery file can have no window at all.
+    """
+    if "windows" not in data:
+        return data
+    windows = data.get("windows") or []
+    return windows[0] if windows else {}
+
+
 def write_mozilla_lz4(filepath: Path, data: Dict[str, Any], create_backup: bool = True):
     """Write data in Mozilla's LZ4-compressed JSON format."""
     import lz4.block

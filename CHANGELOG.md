@@ -17,6 +17,9 @@ Two more of Arc's habits in Zen, and an Arc-like Ctrl+Tab panel.
   own switch in Zen's mod settings.
 - Both items are in Zen setup, on in Arc as it was and Just the look;
   `--no-peek` and `--no-ctrl-tab` leave them out of a CLI run.
+- A migration no longer stops at "Sync pinned-folder open/closed state" with
+  "list index out of range" when one of Zen's session files has no window
+  ([#1](https://github.com/NosefU/arc-to-zen/issues/1)).
 
 ## v0.3.0 — 2026-10-25
 
