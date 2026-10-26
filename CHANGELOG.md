@@ -3,6 +3,21 @@
 Each release's notes on GitHub are its section here. A section starts with
 `## v<version> — <date>`; the release fails if its tag has none.
 
+## v0.4.0 — 2026-10-26
+
+Two more of Arc's habits in Zen, and an Arc-like Ctrl+Tab panel.
+
+- Peek on Shift-click: Shift-click a link to open it in Peek, as in Arc. Zen
+  uses Option-click (Alt-click on Windows) by default.
+- Ctrl+Tab like Arc: Ctrl+Tab goes to the tab used before, and Ctrl+Shift+Tab
+  goes the other way. Zen's Ctrl+Shift+Tab "show all tabs" is turned off for
+  it.
+- The Arc Look mod (1.5.0) styles the Ctrl+Tab panel like Arc's: a compact
+  light card with small previews and the selected tab in lavender. It has its
+  own switch in Zen's mod settings.
+- Both items are in Zen setup, on in Arc as it was and Just the look;
+  `--no-peek` and `--no-ctrl-tab` leave them out of a CLI run.
+
 ## v0.3.0 — 2026-10-25
 
 The first release of this fork: much more of Arc comes along, the app is new,
