@@ -278,10 +278,10 @@ figure:hover .window { transform: translateY(-4px); }
 figcaption { color: var(--muted); font-size: 15px; }
 figcaption b { color: var(--ink); font-weight: 600; }
 
-/* Just the look: Zen before and after, split by a handle */
+/* Just the look: Arc and Zen with its look, split by a handle */
 .look { display: grid; gap: 22px; }
 .cmp { position: relative; --x: 50%; touch-action: pan-y; user-select: none; cursor: ew-resize; }
-.cmp .shot { position: relative; aspect-ratio: 1920 / 430; }
+.cmp .shot { position: relative; aspect-ratio: 1920 / 700; }
 .cmp img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .cmp .after { clip-path: inset(0 0 0 var(--x)); }
 .cmp .handle { position: absolute; top: 0; bottom: 0; left: var(--x); width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; }
@@ -335,9 +335,9 @@ footer a { color: var(--muted); }
 @media (max-width: 860px) {
   .presets, .safe, .files { grid-template-columns: 1fr; }
   .tweaks { grid-template-columns: 1fr; }
-  /* A phone shows the left half, where the address bar changes most */
-  .cmp .shot { aspect-ratio: 1000 / 430; }
-  .cmp img { object-fit: cover; object-position: 0 0; }
+  /* A phone shows the middle, with the address bar and the Ctrl+Tab panel */
+  .cmp .shot { aspect-ratio: 1000 / 700; }
+  .cmp img { object-fit: cover; object-position: 50% 0; }
   .cmp .lbl { bottom: 8px; font-size: 11px; padding: 5px 7px; }
   .cmp .lbl.l { left: 8px; } .cmp .lbl.r { right: 8px; }
   .screens, .notes { grid-template-columns: 1fr; }
@@ -469,10 +469,12 @@ footer a { color: var(--muted); }
       <span class="chip" tabindex="0">Interface language<span class="tip">Menus and date formats follow the system, as in Arc</span></span>
     </div></div>
     <div class="row"><h3>Zen setup</h3><div class="chips">
-      <span class="chip" tabindex="0">Arc Look mod<span class="tip">Compact top bar, an Arc-like address bar that floats, Arc-style Peek</span></span>
+      <span class="chip" tabindex="0">Arc Look mod<span class="tip">Compact top bar, an Arc-like address bar that floats, Arc-style Peek and Ctrl+Tab panel</span></span>
       <span class="chip" tabindex="0">Sidebar like Arc<span class="tip">A hidden Arc sidebar starts Zen in compact mode</span></span>
       <span class="chip" tabindex="0">Toolbars like Arc<span class="tip">Single or separate toolbars, as Arc shows the address</span></span>
       <span class="chip" tabindex="0">Easier drag-to-split<span class="tip">Drop a tab on another to split the view: wider target, half the delay</span></span>
+      <span class="chip" tabindex="0">Peek on Shift-click<span class="tip">Shift-click a link to open it in Peek, as in Arc</span></span>
+      <span class="chip" tabindex="0">Ctrl+Tab like Arc<span class="tip">Switches to the tab used before, and Ctrl+Shift+Tab goes the other way. With the Arc Look mod, the panel looks like Arc's too</span></span>
     </div></div>
   </div>
 </section>
@@ -498,19 +500,21 @@ footer a { color: var(--muted); }
   <div class="look">
     <div class="window cmp" id="cmp">
       <div class="shot">
-        <img src="assets/look-before.webp" alt="Zen as it comes" width="1920" height="430" loading="lazy">
-        <img class="after" src="assets/look-after.webp" alt="Zen with Arc's look" width="1920" height="430" loading="lazy">
+        <img src="assets/look-arc.webp" alt="Arc with a Peek window and its Ctrl+Tab panel" width="1920" height="700" loading="lazy">
+        <img class="after" src="assets/look-zen.webp" alt="Zen with Arc's look, a Peek window and the Ctrl+Tab panel" width="1920" height="700" loading="lazy">
       </div>
       <span class="handle"></span>
-      <span class="lbl l">Zen as it comes</span><span class="lbl r">With Arc's look</span>
-      <input type="range" min="0" max="100" value="50" aria-label="Move to compare Zen before and after">
+      <span class="lbl l">Arc</span><span class="lbl r">Zen with Arc's look</span>
+      <input type="range" min="0" max="100" value="50" aria-label="Move to compare Arc and Zen with Arc's look">
     </div>
     <ul class="tweaks">
       <li><b>Compact top bar</b><span>32px tall, as in Arc</span></li>
       <li><b>Arc-like address bar</b><span>As wide as the URL, centered, no background</span></li>
       <li><b>Floating address bar</b><span>Opens in the middle of the window, like Arc's command bar</span></li>
       <li><b>Sidebar and toolbars</b><span>Laid out like your Arc, or Arc's defaults without it</span></li>
-      <li><b>Light Peek buttons</b><span>And the container line on the left of tabs, as in Arc</span></li>
+      <li><b>Arc-like Peek</b><span>Light buttons and a rounded window</span></li>
+      <li><b>Peek on Shift-click</b><span>Shift-click a link to open it in Peek</span></li>
+      <li><b>Ctrl+Tab like Arc</b><span>Back to the tab used before, in Arc's compact panel</span></li>
       <li><b>Easier drag-to-split</b><span>Drop a tab on another to split the view: wider target, half the delay</span></li>
     </ul>
     <p class="look-note">The look comes from Arc Look, a Zen mod bundled with the app. Each of its tweaks has a switch in Zen's mod settings, and the mod can be turned off at any time.</p>
