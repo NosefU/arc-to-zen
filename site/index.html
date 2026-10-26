@@ -278,6 +278,25 @@ figure:hover .window { transform: translateY(-4px); }
 figcaption { color: var(--muted); font-size: 15px; }
 figcaption b { color: var(--ink); font-weight: 600; }
 
+/* Just the look: Zen before and after, split by a handle */
+.look { display: grid; gap: 22px; }
+.cmp { position: relative; --x: 50%; touch-action: pan-y; user-select: none; cursor: ew-resize; }
+.cmp .shot { position: relative; aspect-ratio: 1920 / 430; }
+.cmp img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.cmp .after { clip-path: inset(0 0 0 var(--x)); }
+.cmp .handle { position: absolute; top: 0; bottom: 0; left: var(--x); width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; }
+.cmp .handle::after { content: "\2194"; position: absolute; top: 50%; left: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; display: grid; place-items: center;
+  border-radius: 50%; background: var(--accent); color: #fff; font: 600 16px/1 var(--body); box-shadow: 0 6px 16px -6px var(--accent); }
+.cmp .lbl { position: absolute; bottom: 10px; font: 600 12px/1 var(--body); padding: 6px 9px; border-radius: 8px; background: rgba(27, 26, 34, .72); color: #fff; pointer-events: none; }
+.cmp .lbl.l { left: 10px; } .cmp .lbl.r { right: 10px; background: var(--accent); }
+.cmp input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+.cmp:has(input:focus-visible) .handle::after { outline: 2px solid var(--ink); outline-offset: 2px; }
+.tweaks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 28px; margin: 0; padding: 0; list-style: none; }
+.tweaks li { padding: 14px 0; border-top: 1px solid var(--line); display: grid; gap: 4px; align-content: start; }
+.tweaks b { font-weight: 600; }
+.tweaks span { color: var(--muted); font-size: 15px; }
+.look-note { color: var(--muted); font-size: 15px; }
+
 /* Safety */
 .safe { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
 .safe div { display: grid; gap: 10px; align-content: start; padding-top: 18px; border-top: 2px solid var(--ink); }
@@ -315,6 +334,12 @@ footer a { color: var(--muted); }
 
 @media (max-width: 860px) {
   .presets, .safe, .files { grid-template-columns: 1fr; }
+  .tweaks { grid-template-columns: 1fr; }
+  /* A phone shows the left half, where the address bar changes most */
+  .cmp .shot { aspect-ratio: 1000 / 430; }
+  .cmp img { object-fit: cover; object-position: 0 0; }
+  .cmp .lbl { bottom: 8px; font-size: 11px; padding: 5px 7px; }
+  .cmp .lbl.l { left: 8px; } .cmp .lbl.r { right: 8px; }
   .screens, .notes { grid-template-columns: 1fr; }
   .row { grid-template-columns: 1fr; }
   .row h3 { padding-top: 0; }
@@ -461,6 +486,34 @@ footer a { color: var(--muted); }
     <div class="preset"><h3>Just tabs</h3><p>Spaces, tabs and how they look. Nothing else in Zen changes.</p></div>
     <div class="preset on"><span class="tag green">Recommended</span><h3>Arc as it was</h3><p>Everything above: sign-ins, boosts, routing, languages and an Arc-like Zen.</p></div>
     <div class="preset"><span class="tag">No migration</span><h3>Just the look</h3><p>Zen keeps its tabs and spaces and gets Arc's look. Works without Arc installed.</p></div>
+  </div>
+</section>
+
+<section id="look" class="reveal">
+  <div class="head">
+    <span class="eyebrow">Just the look</span>
+    <h2>Already on Zen? Make it feel like Arc</h2>
+    <p class="lede">Nothing is moved: your tabs and spaces stay as they are. Zen gets Arc's look and a few of its habits. Works without Arc installed.</p>
+  </div>
+  <div class="look">
+    <div class="window cmp" id="cmp">
+      <div class="shot">
+        <img src="assets/look-before.webp" alt="Zen as it comes" width="1920" height="430" loading="lazy">
+        <img class="after" src="assets/look-after.webp" alt="Zen with Arc's look" width="1920" height="430" loading="lazy">
+      </div>
+      <span class="handle"></span>
+      <span class="lbl l">Zen as it comes</span><span class="lbl r">With Arc's look</span>
+      <input type="range" min="0" max="100" value="50" aria-label="Move to compare Zen before and after">
+    </div>
+    <ul class="tweaks">
+      <li><b>Compact top bar</b><span>32px tall, as in Arc</span></li>
+      <li><b>Arc-like address bar</b><span>As wide as the URL, centered, no background</span></li>
+      <li><b>Floating address bar</b><span>Opens in the middle of the window, like Arc's command bar</span></li>
+      <li><b>Sidebar and toolbars</b><span>Laid out like your Arc, or Arc's defaults without it</span></li>
+      <li><b>Light Peek buttons</b><span>And the container line on the left of tabs, as in Arc</span></li>
+      <li><b>Easier drag-to-split</b><span>Drop a tab on another to split the view: wider target, half the delay</span></li>
+    </ul>
+    <p class="look-note">The look comes from Arc Look, a Zen mod bundled with the app. Each of its tweaks has a switch in Zen's mod settings, and the mod can be turned off at any time.</p>
   </div>
 </section>
 
@@ -753,6 +806,14 @@ footer a { color: var(--muted); }
     const asset = link.dataset.asset || link.dataset.pick || os || "unknown";
     window.goatcounter.count({ path: `download-${asset}-${link.dataset.count}`, title: link.textContent.trim(), event: true });
   });
+})();
+</script>
+<script>
+// Before and after: the handle follows the range input under it
+(() => {
+  const cmp = document.getElementById("cmp"); if (!cmp) return;
+  const range = cmp.querySelector("input");
+  range.addEventListener("input", () => cmp.style.setProperty("--x", range.value + "%"));
 })();
 </script>
 </body>
