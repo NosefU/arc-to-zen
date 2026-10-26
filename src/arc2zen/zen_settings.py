@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Carry Arc's window layout over to Zen and give Zen Arc's habits: drag-to-split and Peek."""
+"""Carry Arc's window layout over to Zen and give Zen Arc's habits: drag-to-split, Peek, Ctrl+Tab."""
 
 from __future__ import annotations
 
@@ -27,6 +27,11 @@ SPLIT_DRAG_PREFS = {
 
 # Arc opens a link in Peek on Shift-click; Zen's Glance needs Option-click (Alt-click on Windows) by default
 PEEK_PREFS = {"zen.glance.activation-method": "shift"}
+
+# Ctrl+Tab goes back to the tab used before, as in Arc, and Ctrl+Shift+Tab goes the other way
+CTRL_TAB_PREFS = {"browser.ctrlTab.sortByRecentlyUsed": True}
+# Zen binds Ctrl+Shift+Tab to its list of all tabs, which takes the key from Ctrl+Tab's panel
+SHOW_ALL_TABS_KEY = "key_showAllTabs"
 
 
 # Arc for Windows always shows the URL in a top bar; Arc for macOS has a setting for it
@@ -79,6 +84,25 @@ def toolbar_prefs(arc_profile: str | Path | None = None) -> Dict[str, Any]:
     return {"zen.view.use-single-toolbar": not bool(defaults["topBarURLEnabled"])}
 
 
+def free_ctrl_shift_tab(profile: Path) -> bool:
+    """Unbind Zen's Ctrl+Shift+Tab "show all tabs" so it steps back in Ctrl+Tab's panel."""
+    path = profile / "zen-keyboard-shortcuts.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        # Zen writes the file on first start; until then there is nothing to unbind
+        logger.info("   Zen keyboard shortcuts not found; Ctrl+Shift+Tab left as is")
+        return False
+    for shortcut in data.get("shortcuts", []):
+        if shortcut.get("id") == SHOW_ALL_TABS_KEY and not shortcut.get("disabled"):
+            shortcut.update(disabled=True, keycode="",
+                            modifiers={key: False for key in shortcut.get("modifiers") or {}})
+            path.write_text(json.dumps(data), encoding="utf-8")
+            logger.info("   Ctrl+Shift+Tab: no longer shows all tabs")
+            return True
+    return False
+
+
 def apply_zen_settings(
     arc_profile: str | Path | None = None,
     zen_profile: str | Path | None = None,
@@ -87,6 +111,7 @@ def apply_zen_settings(
     toolbar: bool = True,
     split_drag: bool = True,
     peek: bool = True,
+    ctrl_tab: bool = True,
     arc_defaults: bool = False,
 ) -> bool:
     """With arc_defaults (no Arc here) the sidebar and toolbars take Arc's defaults."""
@@ -110,6 +135,9 @@ def apply_zen_settings(
         prefs.update(SPLIT_DRAG_PREFS)
     if peek:
         prefs.update(PEEK_PREFS)
+    if ctrl_tab:
+        prefs.update(CTRL_TAB_PREFS)
+        free_ctrl_shift_tab(profile)
 
     for name, value in prefs.items():
         logger.info(f"   {name} = {json.dumps(value)}")

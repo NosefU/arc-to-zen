@@ -71,6 +71,7 @@ class MigrationOptions:
     toolbar_layout: bool = True
     split_drag: bool = True
     peek: bool = True
+    ctrl_tab: bool = True
     website_languages: bool = True
     interface_language: bool = True
     skip_orphaned: bool = True
@@ -85,7 +86,7 @@ class MigrationOptions:
 
 # What "just the look" applies: Arc's space icons and colors, the Arc Look mod and Arc's layout
 LOOK_KEYS = ("workspace_icons", "workspace_themes", "default_theme",
-             "arc_look_mod", "sidebar_mode", "toolbar_layout", "split_drag", "peek")
+             "arc_look_mod", "sidebar_mode", "toolbar_layout", "split_drag", "peek", "ctrl_tab")
 # Space icons and colors come from Arc; the rest works without it
 ARC_LOOK_KEYS = ("workspace_icons", "workspace_themes", "default_theme")
 
@@ -373,7 +374,8 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
             ),
         ),
         (
-            options.sidebar_mode or options.toolbar_layout or options.split_drag or options.peek,
+            options.sidebar_mode or options.toolbar_layout or options.split_drag or options.peek
+            or options.ctrl_tab,
             MigrationStep(
                 "Apply Zen layout settings",
                 lambda: apply_zen_settings(
@@ -384,6 +386,7 @@ def migration_steps(options: MigrationOptions, export_file: Path) -> list[Migrat
                     toolbar=options.toolbar_layout,
                     split_drag=options.split_drag,
                     peek=options.peek,
+                    ctrl_tab=options.ctrl_tab,
                     arc_defaults=options.arc_defaults,
                 ),
             ),

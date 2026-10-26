@@ -1031,6 +1031,8 @@ CATEGORIES = [
         Choice("split_drag", "Easier drag-to-split", "Drop a tab on another to split the view: wider target, half the delay"),
         Choice("peek", "Peek on Shift-click",
                f"Shift-click a link to open it in Peek, as in Arc; Zen uses {ALT_KEY}-click"),
+        Choice("ctrl_tab", "Ctrl+Tab like Arc", "Switches to the tab used before, and Ctrl+Shift+Tab goes the other way. "
+               "With the Arc Look mod, the Ctrl+Tab panel looks like Arc's too"),
     ], "", ()),
 ]
 
@@ -1067,7 +1069,7 @@ REPORT_CONTENTS = [
 # The rows "just the look" shows; the others don't apply to it
 LOOK_ROWS = ("Look", "Zen setup", "Safety")
 ZEN_SETUP = [("arc_look_mod", "Arc Look mod"), ("sidebar_mode", "sidebar"), ("toolbar_layout", "toolbars"),
-             ("split_drag", "drag-to-split"), ("peek", "Peek")]
+             ("split_drag", "drag-to-split"), ("peek", "Peek"), ("ctrl_tab", "Ctrl+Tab")]
 
 
 def preset_values(preset: str) -> Dict[str, bool]:
@@ -1845,6 +1847,7 @@ class MainWindow(QMainWindow):
                 toolbar_layout=v["toolbar_layout"],
                 split_drag=v["split_drag"],
                 peek=v["peek"],
+                ctrl_tab=v["ctrl_tab"],
                 auto_close_zen=v["auto_close_zen"],
                 spaces=names,
             ))
@@ -1868,6 +1871,7 @@ class MainWindow(QMainWindow):
             toolbar_layout=v["toolbar_layout"],
             split_drag=v["split_drag"],
             peek=v["peek"],
+            ctrl_tab=v["ctrl_tab"],
             website_languages=v["website_languages"],
             interface_language=v["interface_language"],
             cookies=v["cookies"],
@@ -1890,6 +1894,8 @@ class MainWindow(QMainWindow):
             done.append("easier drag-to-split")
         if v["peek"]:
             done.append("Peek on Shift-click")
+        if v["ctrl_tab"]:
+            done.append("Arc's Ctrl+Tab")
         text = ""
         if done:
             listed = done[0] if len(done) == 1 else ", ".join(done[:-1]) + " and " + done[-1]

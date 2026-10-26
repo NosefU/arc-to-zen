@@ -151,6 +151,11 @@ GitHub can't attach a file through a link, so the user drags the report in.
   `zen.splitView.drag-over-split-delayMC = 250`.
 - **Peek on Shift-click**: `zen.glance.activation-method = "shift"`, as in Arc;
   Zen opens Glance on Option-click (Alt-click on Windows) by default.
+- **Ctrl+Tab**: `browser.ctrlTab.sortByRecentlyUsed = true`, so Ctrl+Tab goes
+  to the tab used before, as in Arc. Zen binds Ctrl+Shift+Tab to "show all
+  tabs" (`key_showAllTabs` in `zen-keyboard-shortcuts.json`); that shortcut is
+  turned off so Ctrl+Shift+Tab steps back through the panel. A profile Zen has
+  never started has no such file yet and keeps the binding.
 
 ## Languages
 
